@@ -39,5 +39,7 @@ return [
 
     'rate_limits' => [
         'web' => (int) env('WEB_RATE_LIMIT_PER_MINUTE', 120),
+        'api' => (int) env('API_RATE_LIMIT_PER_MINUTE', 60),
+        'auth' => (int) env('AUTH_RATE_LIMIT_PER_MINUTE', 10),
     ],
 ];

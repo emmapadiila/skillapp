@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\AssessmentAnalyzer;
+use App\Services\NullAssessmentAnalyzer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -16,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(AssessmentAnalyzer::class, NullAssessmentAnalyzer::class);
     }
 
     /**
@@ -34,5 +36,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(config()->integer('security.rate_limits.web'))
                 ->by('web:'.(string) $identifier);
         });
+
+        RateLimiter::for('api', function (Request $request): Limit {
+            $identifier = $request->user()?->getAuthIdentifier() ?? $request->ip();
+
+            return Limit::perMinute(config()->integer('security.rate_limits.api'))
+                ->by('api:'.(string) $identifier);
+        });
+
+        RateLimiter::for('auth', fn (Request $request): Limit => Limit::perMinute(
+            config()->integer('security.rate_limits.auth')
+        )->by('auth:'.$request->ip()));
     }
 }
