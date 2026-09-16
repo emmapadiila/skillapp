@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RecoverPasswordRequest;
 use App\Http\Requests\Api\V1\RefreshTokenRequest;
 use App\Http\Requests\Api\V1\SignInRequest;
-use App\Models\User;
+use App\Services\AuthenticationService;
 use App\Services\SupabaseAuthService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -14,26 +14,30 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly SupabaseAuthService $auth) {}
+    public function __construct(
+        private readonly SupabaseAuthService $auth,
+        private readonly AuthenticationService $authentication,
+    ) {}
 
     public function signIn(SignInRequest $request): JsonResponse
     {
         try {
-            $session = $this->auth->signIn($request->string('email')->toString(), $request->string('password')->toString());
+            $result = $this->authentication->attempt(
+                $request->string('email')->lower()->toString(),
+                $request->string('password')->toString(),
+            );
         } catch (RequestException) {
             return response()->json(['message' => 'Las credenciales no son válidas.'], 401);
         }
 
-        $identity = $session['user'];
-        $user = User::query()->where('email', $identity['email'])->where('is_active', true)->first();
-
-        if ($user === null || ($user->supabase_user_id !== null && $user->supabase_user_id !== $identity['id'])) {
+        if ($result === null) {
             return response()->json(['message' => 'La cuenta no está habilitada en SoftSkills AI.'], 403);
         }
 
-        $user->forceFill(['supabase_user_id' => $identity['id'], 'last_login_at' => now()])->save();
-
-        return response()->json(['data' => ['session' => $session, 'user' => $user->load('company', 'position')]]);
+        return response()->json(['data' => [
+            'session' => $result['session'],
+            'user' => $result['user']->load('company', 'position'),
+        ]]);
     }
 
     public function refresh(RefreshTokenRequest $request): JsonResponse

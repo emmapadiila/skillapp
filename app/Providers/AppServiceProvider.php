@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -44,8 +45,11 @@ class AppServiceProvider extends ServiceProvider
                 ->by('api:'.(string) $identifier);
         });
 
-        RateLimiter::for('auth', fn (Request $request): Limit => Limit::perMinute(
-            config()->integer('security.rate_limits.auth')
-        )->by('auth:'.$request->ip()));
+        RateLimiter::for('auth', function (Request $request): Limit {
+            $email = Str::lower($request->string('email')->toString());
+
+            return Limit::perMinute(config()->integer('security.rate_limits.auth'))
+                ->by('auth:'.$email.'|'.$request->ip());
+        });
     }
 }

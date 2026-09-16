@@ -10,8 +10,6 @@ class HomeControllerTest extends TestCase
     {
         $response = $this->get(route('home'));
 
-        $response
-            ->assertOk()
-            ->assertViewIs('welcome');
+        $response->assertRedirect(route('login'));
     }
 }
