@@ -370,3 +370,72 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+@layer components {
+    .collaborator-filter {
+        @apply h-9 min-w-0 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100;
+    }
+
+    .collaborator-table td {
+        @apply px-3 py-3 text-sm text-slate-600;
+        overflow-wrap: anywhere;
+    }
+
+    .collaborator-table td:first-child {
+        @apply pl-4;
+    }
+
+    .collaborator-table th[aria-sort='ascending'] button,
+    .collaborator-table th[aria-sort='descending'] button {
+        @apply text-blue-600;
+    }
+
+    .collaborator-table th[aria-sort='ascending'] svg path {
+        d: path('m7 14 5-5 5 5');
+    }
+
+    .collaborator-table th[aria-sort='descending'] svg path {
+        d: path('m7 10 5 5 5-5');
+    }
+
+    .collaborator-badge {
+        @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs leading-none;
+    }
+
+    .collaborator-badge::before {
+        @apply size-1.5 shrink-0 rounded-full bg-current;
+        content: '';
+    }
+
+    .collaborator-badge--blue {
+        @apply border-blue-200 bg-blue-100 text-blue-600;
+    }
+
+    .collaborator-badge--green {
+        @apply border-emerald-200 bg-emerald-100 text-emerald-700;
+    }
+
+    .collaborator-badge--violet {
+        @apply border-violet-200 bg-violet-100 text-violet-600;
+    }
+
+    .collaborator-badge--gray {
+        @apply border-slate-200 bg-slate-100 text-slate-600;
+    }
+
+    .collaborator-profile-button {
+        @apply inline-flex min-h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-600 transition hover:border-blue-300 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600;
+    }
+
+    .collaborator-dialog {
+        margin: auto;
+        max-height: 90dvh;
+        overflow-y: auto;
+    }
+
+    [data-collaborators-page] [hidden] {
+        display: none !important;
+    }
+}
+
+[hidden] { display: none !important; }

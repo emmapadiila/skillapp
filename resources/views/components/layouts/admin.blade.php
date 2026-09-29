@@ -5,6 +5,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        @if (session('supabase.access_token'))<meta name="api-access-token" content="{{ session('supabase.access_token') }}">@endif
         <meta name="color-scheme" content="light">
         <meta name="theme-color" content="#0c1729">
         <title>{{ $title }} | SkillDiagnóstico</title>
@@ -17,7 +18,8 @@
 
             <main class="min-h-dvh lg:pl-64">
                 <x-admin.topbar :title="$title" :breadcrumb="$breadcrumb" />
-                {{ $slot }}
+                <div id="workspace-content">{{ $slot }}</div>
+                <x-admin.skills />
             </main>
         </div>
 

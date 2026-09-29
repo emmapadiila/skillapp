@@ -17,15 +17,16 @@
 
     <nav class="admin-nav min-h-0 flex-1 overflow-y-auto px-2.5 py-3" aria-label="Secciones">
         <div class="grid gap-1">
-            <a href="{{ route('diagnostics.organizational') }}" @class(['admin-nav-link', 'admin-nav-link--active' => $active === 'dashboard']) @if ($active === 'dashboard') aria-current="page" @endif>
+            <a href="{{ route('diagnostics.organizational') }}" data-workspace-nav="dashboard" @class(['admin-nav-link', 'admin-nav-link--active' => $active === 'dashboard']) @if ($active === 'dashboard') aria-current="page" @endif>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1V10Z"/></svg><span>Dashboard</span><span class="ml-auto text-base">›</span>
             </a>
-            <a href="{{ route('collaborators.index') }}" @class(['admin-nav-link', 'admin-nav-link--active' => $active === 'collaborators']) @if ($active === 'collaborators') aria-current="page" @endif>
+            <a href="{{ route('collaborators.index') }}" data-workspace-nav="collaborators" @class(['admin-nav-link', 'admin-nav-link--active' => $active === 'collaborators']) @if ($active === 'collaborators') aria-current="page" @endif>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20M9.5 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM16 4a3.5 3.5 0 0 1 0 7m2 3a4 4 0 0 1 3 4v2"/></svg><span>Colaboradores</span><span class="ml-auto text-base">›</span>
             </a>
+            <a data-workspace-nav="skills" href="{{ route('diagnostics.organizational') }}#habilidades" class="admin-nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg><span>Habilidades</span></a>
             @php
                 $navigationItems = [
-                    ['Evaluaciones', 'clipboard'], ['Habilidades', 'spark'],
+                    ['Evaluaciones', 'clipboard'],
                     ['Banco de preguntas', 'help'], ['Cargos', 'briefcase'], ['Diagnóstico organizacional', 'chart'],
                     ['Mapa de calor', 'map'], ['Brechas', 'warning'], ['Recomendaciones IA', 'star'],
                     ['Planes de mejoramiento', 'target'], ['Seguimiento', 'calendar'], ['Reportes', 'file'],
@@ -54,8 +55,8 @@
     </nav>
 
     <div class="flex shrink-0 items-center gap-3 border-t border-white/10 px-4 py-4">
-        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">DC</span>
-        <span class="min-w-0 flex-1"><span class="block truncate text-xs font-semibold text-white">Daniela Castro</span><span class="mt-0.5 block truncate text-[.68rem] text-slate-400">Talento Humano · Demo</span></span>
+        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">{{ auth()->check() ? mb_substr(auth()->user()->name, 0, 1) : '—' }}</span>
+        <span class="min-w-0 flex-1"><span class="block truncate text-xs font-semibold text-white">{{ auth()->user()?->name ?? 'Sin sesión' }}</span><span class="mt-0.5 block truncate text-[.68rem] text-slate-400">{{ auth()->check() ? 'Cuenta conectada' : 'Inicia sesión para consultar datos' }}</span></span>
         <button type="button" class="grid size-8 place-items-center rounded-md text-slate-400 hover:bg-white/10 hover:text-white" data-demo-nav="Configuración" aria-label="Configuración"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.4.8l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.4-.8l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.7l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.4-.8l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.4.8l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.6Z" transform="translate(-1 -1) scale(1.08)"/></svg></button>
     </div>
 </aside>
