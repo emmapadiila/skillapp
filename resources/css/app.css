@@ -93,6 +93,250 @@
         filter: drop-shadow(0 -8px 18px rgb(45 92 255 / 0.35));
     }
 
+    .admin-nav-link {
+        display: flex;
+        min-height: 38px;
+        align-items: center;
+        gap: 0.7rem;
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.65rem;
+        color: #9aa9bf;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-align: left;
+        transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .admin-nav-link svg {
+        width: 1rem;
+        height: 1rem;
+        flex: none;
+    }
+
+    .admin-nav-link:hover {
+        background: rgb(255 255 255 / 0.07);
+        color: white;
+    }
+
+    .admin-nav-link[aria-current='page'] {
+        background: #1d5df5;
+        color: white;
+        font-weight: 700;
+    }
+
+    .admin-nav-link:focus-visible {
+        outline: 2px solid #60a5fa;
+        outline-offset: 2px;
+    }
+
+    .admin-sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .dashboard-filter {
+        min-width: 5.25rem;
+        height: 2.25rem;
+        border: 1px solid #e1e7ef;
+        border-radius: 0.45rem;
+        background-color: white;
+        padding: 0 1.8rem 0 0.7rem;
+        color: #526178;
+        font-size: 0.7rem;
+        outline: none;
+    }
+
+    .axis-score--blue {
+        color: #3b82f6;
+    }
+
+    .axis-score--green {
+        color: #20c66b;
+    }
+
+    .axis-score--violet {
+        color: #8b5cf6;
+    }
+
+    .dashboard-filter:focus-visible {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgb(96 165 250 / 0.2);
+    }
+
+    .axis-chart {
+        position: relative;
+        height: 11.5rem;
+        padding: 0.75rem 0 1.6rem 2.1rem;
+    }
+
+    .axis-chart-grid {
+        position: absolute;
+        inset: 0 0 1.6rem 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: #8b9bb2;
+        font-size: 0.62rem;
+    }
+
+    .axis-chart-grid span {
+        display: flex;
+        height: 1px;
+        align-items: center;
+        justify-content: flex-end;
+        border-bottom: 1px dashed #e8edf3;
+        padding-right: 0.45rem;
+    }
+
+    .axis-chart-bars {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        height: 100%;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: end;
+        gap: clamp(1rem, 6vw, 3.5rem);
+        padding: 0 4% 0;
+    }
+
+    .axis-chart-column {
+        position: relative;
+        display: flex;
+        height: 100%;
+        min-width: 0;
+        align-items: center;
+    }
+
+    .axis-chart-column[hidden] {
+        display: none;
+    }
+
+    .axis-chart-value,
+    .axis-chart-label {
+        position: absolute;
+        left: 50%;
+        color: #8392a9;
+        font-size: 0.65rem;
+        text-align: center;
+        transform: translateX(-50%);
+    }
+
+    .axis-chart-value {
+        bottom: calc(var(--bar-value) + 0.25rem);
+        white-space: nowrap;
+        color: #53637c;
+        font-weight: 700;
+    }
+
+    .axis-chart-label {
+        bottom: -1.35rem;
+        white-space: nowrap;
+    }
+
+    .axis-chart-bar {
+        position: absolute;
+        bottom: 0;
+        width: min(100%, 8rem);
+        height: var(--bar-value);
+        min-height: 0.5rem;
+        border-radius: 0.35rem 0.35rem 0 0;
+        transition: height 250ms ease;
+    }
+
+    .employee-donut {
+        position: relative;
+        display: grid;
+        width: 8.5rem;
+        aspect-ratio: 1;
+        flex: none;
+        place-items: center;
+        border-radius: 50%;
+        background: conic-gradient(#20c66b 0 var(--evaluated-share, 80.8%), #f5a400 var(--evaluated-share, 80.8%) calc(var(--evaluated-share, 80.8%) + var(--pending-share, 14.3%)), #3885f6 calc(var(--evaluated-share, 80.8%) + var(--pending-share, 14.3%)) 100%);
+        transform: rotate(-90deg);
+    }
+
+    .employee-donut::after {
+        position: absolute;
+        width: 64%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: white;
+        content: '';
+    }
+
+    .axis-pill {
+        display: inline-flex;
+        min-height: 1.8rem;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 9999px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .axis-pill--blue {
+        background: #e8f1ff;
+        color: #2563eb;
+    }
+
+    .axis-pill--green {
+        background: #e1fbef;
+        color: #0d9b60;
+    }
+
+    .axis-pill--violet {
+        background: #f0eaff;
+        color: #8153e8;
+    }
+
+    .axis-progress {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        transition: width 250ms ease;
+    }
+
+    .axis-progress--blue {
+        background: #3b82f6;
+    }
+
+    .axis-progress--green {
+        background: #20c66b;
+    }
+
+    .axis-progress--violet {
+        background: #8b5cf6;
+    }
+
+    .axis-summary.is-muted {
+        opacity: 0.48;
+    }
+
+    .diagnostic-modal[open] {
+        animation: auth-card-enter 180ms ease-out both;
+    }
+
+    @media (max-width: 639px) {
+        .dashboard-filter {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .axis-chart {
+            height: 10rem;
+            padding-left: 1.8rem;
+        }
+
+        .axis-chart-bars {
+            gap: 0.7rem;
+            padding-inline: 0.25rem;
+        }
+
+        .axis-chart-label {
+            font-size: 0.58rem;
+        }
+    }
+
     .auth-metric-card {
         border: 1px solid rgb(94 168 255 / 0.35);
         border-radius: 0.85rem;
