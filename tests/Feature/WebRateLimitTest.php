@@ -10,8 +10,8 @@ class WebRateLimitTest extends TestCase
     {
         config()->set('security.rate_limits.web', 2);
 
-        $this->get(route('home'))->assertOk();
-        $this->get(route('home'))->assertOk();
+        $this->get(route('home'))->assertRedirect(route('login'));
+        $this->get(route('home'))->assertRedirect(route('login'));
 
         $response = $this->get(route('home'));
 

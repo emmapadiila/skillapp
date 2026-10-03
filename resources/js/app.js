@@ -1,6 +1,7 @@
 import './collaborators';
 import './skills';
 import './dashboard';
+import './workspace-app';
 
 const toast = document.querySelector('#interface-toast');
 let toastTimeout;
@@ -36,6 +37,7 @@ sidebarOpen?.addEventListener('click', () => {
 });
 document.querySelector('#sidebar-close')?.addEventListener('click', closeSidebar);
 backdrop?.addEventListener('click', closeSidebar);
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSidebar(); });
 
 document.querySelectorAll('[data-demo-nav]').forEach((button) => {
     button.addEventListener('click', () => showToast(`${button.dataset.demoNav}: interfaz pendiente de conexión.`));
@@ -64,3 +66,23 @@ if (passwordToggle instanceof HTMLButtonElement && passwordInput instanceof HTML
         passwordInput.focus({ preventScroll: true });
     });
 }
+
+document.querySelector('[data-login-form]')?.addEventListener('submit', (event) => {
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    submit.disabled = true;
+    submit.textContent = 'Verificando…';
+});
+
+document.querySelector('#recover-password')?.addEventListener('click', async (event) => {
+    const email = document.querySelector('#email');
+    if (!email.reportValidity()) return;
+    const button = event.currentTarget;
+    const feedback = document.querySelector('#recovery-feedback');
+    button.disabled = true; feedback.hidden = false; feedback.textContent = 'Solicitando recuperación…';
+    try {
+        const response = await fetch('/api/v1/auth/recover', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.value }), signal: AbortSignal.timeout(20000) });
+        const result = await response.json();
+        feedback.textContent = result.message ?? 'No se pudo solicitar la recuperación. Inténtalo nuevamente.';
+    } catch { feedback.textContent = 'No fue posible conectar con el servidor. Inténtalo nuevamente.'; }
+    finally { button.disabled = false; }
+});

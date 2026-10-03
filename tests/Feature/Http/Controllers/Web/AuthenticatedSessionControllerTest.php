@@ -52,7 +52,7 @@ class AuthenticatedSessionControllerTest extends TestCase
         ]);
 
         $response
-            ->assertRedirect(route('login'))
+            ->assertRedirect(route('personal.workspace'))
             ->assertSessionHas('supabase.access_token', 'access-token')
             ->assertSessionHasNoErrors();
         $this->assertAuthenticatedAs($user);
