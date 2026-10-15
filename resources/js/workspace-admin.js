@@ -103,7 +103,7 @@ function positions(ctx) {
 function evaluations(ctx) {
     const records = ctx.filtered(companyRecords(ctx, 'evaluations'), (r) => `${r.user?.name} ${label(r.status)} ${label(r.type)}`, (r) => selected(ctx, 'status', r.status));
     return toolbar(companyFilter(ctx) + byState(ctx), button('+ Asignar evaluación', 'create', '', true))
-        + table(['Colaborador', 'Tipo', 'Preguntas', 'Estado', 'Fecha límite', 'Resultado', 'Acciones'], ctx.sorted(records.map((r) => [identity(r.user), badge(r.type, 'blue'), e(r.question_count), statusBadge(r.status), date(r.due_at), r.result ? `${percent(r.result.total_score)}%` : '—', `<div class="flex flex-wrap gap-1">${button('Ver', 'detail', r.id)}${r.status === 'pending' ? button('Reprogramar', 'edit', r.id) + button('Eliminar', 'delete', r.id) : ''}</div>`])), ctx.state);
+        + table(['Colaborador', 'Prueba', 'Tipo', 'Preguntas', 'Estado', 'Fecha límite', 'Resultado', 'Acciones'], ctx.sorted(records.map((r) => [identity(r.user), r.assessment ? badge(r.assessment.name, 'violet') : e('Selección por cargo'), badge(r.type, 'blue'), e(r.question_count), statusBadge(r.status), date(r.due_at), r.result ? `${percent(r.result.total_score)}%` : '—', `<div class="flex flex-wrap gap-1">${button('Ver', 'detail', r.id)}${r.status === 'pending' ? button('Reprogramar', 'edit', r.id) + button('Eliminar', 'delete', r.id) : ''}</div>`])), ctx.state);
 }
 
 function plans(ctx) {

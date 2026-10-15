@@ -8,6 +8,11 @@ use App\Models\User;
 
 class ImprovementPlanPolicy
 {
+    public function before(User $user): ?bool
+    {
+        return $user->isSuperadmin() ? true : null;
+    }
+
     public function view(User $user, ImprovementPlan $plan): bool
     {
         if ($user->isSuperadmin()) {

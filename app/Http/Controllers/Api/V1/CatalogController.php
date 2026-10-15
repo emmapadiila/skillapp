@@ -16,8 +16,8 @@ class CatalogController extends Controller
     public function index(): JsonResponse
     {
         $catalogs = Cache::remember('catalogs:v1', now()->addHour(), fn (): array => [
-            'organizational_axes' => OrganizationalAxis::query()->where('is_active', true)->orderBy('name')->get(),
-            'skill_categories' => SkillCategory::query()->where('is_active', true)->orderBy('name')->get(),
+            'organizational_axes' => OrganizationalAxis::query()->where('is_active', true)->orderBy('name')->get()->toArray(),
+            'skill_categories' => SkillCategory::query()->where('is_active', true)->orderBy('name')->get()->toArray(),
         ]);
 
         return response()->json(['data' => $catalogs]);

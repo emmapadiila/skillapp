@@ -28,5 +28,7 @@ class DatabaseSeeder extends Seeder
             ['code' => 'cognitive', 'name' => 'Cognitivas', 'description' => null, 'is_active' => true],
             ['code' => 'leadership', 'name' => 'Dirección', 'description' => null, 'is_active' => true],
         ], ['code'], ['name', 'description', 'is_active']);
+
+        $this->call(AssessmentInstrumentSeeder::class);
     }
 }

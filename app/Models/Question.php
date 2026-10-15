@@ -17,8 +17,8 @@ class Question extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'company_id', 'skill_id', 'organizational_axis_id', 'created_by',
-        'type', 'difficulty', 'text', 'is_active',
+        'company_id', 'assessment_id', 'code', 'skill_id', 'organizational_axis_id', 'created_by',
+        'type', 'difficulty', 'text', 'is_active', 'display_order',
     ];
 
     protected function casts(): array
@@ -27,12 +27,18 @@ class Question extends Model
             'type' => QuestionType::class,
             'difficulty' => QuestionDifficulty::class,
             'is_active' => 'boolean',
+            'display_order' => 'integer',
         ];
     }
 
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function assessment(): BelongsTo
+    {
+        return $this->belongsTo(Assessment::class);
     }
 
     public function skill(): BelongsTo

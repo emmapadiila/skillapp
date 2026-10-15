@@ -17,7 +17,7 @@ class Evaluation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id', 'user_id', 'assigned_by', 'parent_evaluation_id', 'type',
+        'company_id', 'user_id', 'assigned_by', 'parent_evaluation_id', 'assessment_id', 'type',
         'status', 'question_count', 'assigned_at', 'starts_at', 'due_at',
         'completed_at', 'settings',
     ];
@@ -44,6 +44,11 @@ class Evaluation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function assessment(): BelongsTo
+    {
+        return $this->belongsTo(Assessment::class);
     }
 
     public function questions(): HasMany

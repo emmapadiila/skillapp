@@ -53,10 +53,11 @@ export async function openRecordForm(ctx, id = null) {
             }
             fields += select('Colaborador', 'user_id', ctx.records('employees').filter((u) => u.is_active && u.role === 'collaborator'))
                 + select('Tipo', 'type', enums({ initial: 'Inicial', reevaluation: 'Reevaluación' }), 'initial')
-                + input('Número de preguntas', 'question_count', 20, 'number', 'required min="1" max="200"')
+                + select('Prueba de habilidades (opcional)', 'assessment_id', (ctx.records('assessments') ?? []).map((a) => ({ id: a.id, name: `${a.name} · ${a.axis?.name ?? ''}` })), '', false)
+                + input('Número de preguntas', 'question_count', 20, 'number', 'min="1" max="200"')
                 + input('Fecha límite', 'due_at', '', 'datetime-local', 'required')
                 + select('Evaluación anterior (para reevaluación)', 'parent_evaluation_id', ctx.records('evaluations').filter((ev) => ev.status === 'completed').map((ev) => ({ id: ev.id, name: `${ev.user?.name} · ${date(ev.completed_at)}`, user_id: ev.user_id })), '', false)
-                + '<p class="col-span-full text-xs text-slate-500">Las preguntas se seleccionan a partir de las habilidades configuradas en el cargo del colaborador.</p>';
+                + '<p class="col-span-full text-xs text-slate-500">Si eliges una prueba, se aplican sus 9 preguntas. Si no, las preguntas se seleccionan según las habilidades del cargo del colaborador.</p>';
             break;
         case 'improvement-plans':
             fields += select('Colaborador', 'user_id', ctx.records('employees').filter((u) => u.is_active && u.role === 'collaborator'), record.user_id)
@@ -105,12 +106,18 @@ export async function openRecordForm(ctx, id = null) {
             form.elements.parent_evaluation_id.innerHTML = options(ctx.records('evaluations').filter((ev) => ev.status === 'completed' && ev.user_id === userId).map((ev) => ({ id: ev.id, name: date(ev.completed_at) })), form.elements.parent_evaluation_id.value);
             form.elements.parent_evaluation_id.disabled = form.elements.type.value !== 'reevaluation';
             form.elements.parent_evaluation_id.required = form.elements.type.value === 'reevaluation';
+            const assessment = form.elements.assessment_id;
+            const questionCount = form.elements.question_count;
+            if (assessment && questionCount) {
+                questionCount.disabled = Boolean(assessment.value);
+                questionCount.required = !assessment.value;
+            }
         }
     };
     if (['improvement-plans', 'evaluations'].includes(resource)) tenantInputs();
     form.addEventListener('change', (event) => {
         if (event.target.name === 'type') { toggleOptions(); if (resource === 'evaluations') tenantInputs(); }
-        if (['company_id', 'user_id'].includes(event.target.name)) tenantInputs();
+        if (['company_id', 'user_id', 'assessment_id'].includes(event.target.name)) tenantInputs();
         const row = event.target.closest('[data-position-skill]');
         if (row && event.target.type === 'checkbox') row.querySelectorAll('input[type="number"]').forEach((el) => { el.disabled = !event.target.checked; });
     });
@@ -125,9 +132,10 @@ export async function openRecordForm(ctx, id = null) {
         event.preventDefault(); event.stopPropagation(); if (busy) return;
         const data = Object.fromEntries(new FormData(form));
         delete data[''];
-        for (const key of ['company_id', 'skill_category_id', 'position_id', 'manager_id', 'skill_id', 'area_id', 'organizational_axis_id', 'user_id', 'parent_evaluation_id', 'target_level', 'question_count']) {
+        for (const key of ['company_id', 'skill_category_id', 'position_id', 'manager_id', 'skill_id', 'area_id', 'organizational_axis_id', 'user_id', 'parent_evaluation_id', 'target_level', 'question_count', 'assessment_id']) {
             if (key in data) data[key] = data[key] ? Number(data[key]) : null;
         }
+        if (resource === 'evaluations' && !id && data.assessment_id) delete data.question_count;
         for (const key of ['hire_date', 'due_date', 'description', 'ai_recommendation']) if (key in data && !data[key]) data[key] = null;
         if (['employees', 'skills', 'questions', 'positions', 'areas', 'companies'].includes(resource)) data.is_active = new FormData(form).has('is_active');
         if ('due_at' in data) data.due_at = new Date(data.due_at).toISOString();
@@ -219,7 +227,7 @@ export async function recordAction(ctx, action, id) {
         const record = await ctx.get(`${resource}/${id}`);
         let content;
         if (resource === 'questions') content = `<p class="mb-4 whitespace-pre-wrap text-sm">${e(record.text)}</p><div class="mb-4 flex flex-wrap gap-2">${badge(record.type)}${badge(record.difficulty)}${axisBadge(ctx.axis(record.organizational_axis_id))}</div>${record.type === 'self_report' ? '<p class="text-sm text-slate-500">Respuesta mediante escala Likert de 1 a 5.</p>' : `<ol class="space-y-2">${record.options.map((o) => `<li class="rounded-lg bg-slate-50 p-3 text-sm"><strong>${e(o.label)}.</strong> ${e(o.text)}<p class="mt-1 text-xs text-slate-400">${e(o.score)} / 5 puntos</p></li>`).join('')}</ol>`}`;
-        else if (resource === 'evaluations') content = `<div class="mb-4 flex flex-wrap gap-2">${statusBadge(record.status)}${badge(record.type)}${badge(`${record.question_count} preguntas`)}</div>${record.result ? resultContent(ctx, record) : `<p class="text-sm text-slate-500">Fecha límite: ${date(record.due_at)}</p><ol class="mt-4 list-inside list-decimal space-y-3 text-sm">${record.questions.map((q) => `<li>${e(q.question.text)}</li>`).join('')}</ol>`}`;
+        else if (resource === 'evaluations') content = `<div class="mb-4 flex flex-wrap gap-2">${statusBadge(record.status)}${badge(record.type)}${record.assessment ? badge(record.assessment.name, 'violet') : ''}${badge(`${record.question_count} preguntas`)}</div>${record.assessment?.description ? `<p class="mb-4 rounded-xl bg-blue-50 p-4 text-xs leading-5 text-blue-900">${e(record.assessment.description)}</p>` : ''}${record.result ? resultContent(ctx, record) : `<p class="text-sm text-slate-500">Fecha límite: ${date(record.due_at)}</p><ol class="mt-4 list-inside list-decimal space-y-3 text-sm">${record.questions.map((q) => `<li>${e(q.question.text)}</li>`).join('')}</ol>`}`;
         else if (resource === 'positions') content = `<p class="mb-3 text-sm text-slate-500">${e(record.description ?? 'Sin descripción')}</p><div class="mb-4">${axisBadge(ctx.axis(record.organizational_axis_id))}</div><ul class="space-y-2">${record.skills.map((s) => `<li class="rounded-lg bg-slate-50 p-3 text-sm"><strong>${e(s.name)}</strong><p class="mt-1 text-xs text-slate-500">Peso: ${e(s.pivot.weight)} · Nivel requerido: ${e(s.pivot.required_level)}</p></li>`).join('') || '<li class="text-sm text-slate-400">Sin habilidades asociadas.</li>'}</ul>`;
         else if (resource === 'skills') content = `<p class="text-sm text-slate-500">${e(record.description ?? 'Sin descripción')}</p><p class="my-3 text-sm">Categoría: ${e(record.category?.name)} · Nivel objetivo: ${record.target_level ?? '—'}</p><div class="flex flex-wrap gap-2">${record.axes.map(axisBadge).join('')}</div>`;
         else content = `<dl class="space-y-3 text-sm">${Object.entries({ Nombre: record.name, Código: record.code, NIT: record.nit, Sector: record.sector, Estado: record.is_active ? 'Activo' : 'Inactivo' }).filter(([, value]) => value != null).map(([key, value]) => `<div><dt class="text-xs text-slate-400">${key}</dt><dd>${e(value)}</dd></div>`).join('')}</dl>`;

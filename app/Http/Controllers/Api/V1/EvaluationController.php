@@ -20,7 +20,11 @@ class EvaluationController extends Controller
     {
         $this->authorize('viewAny', Evaluation::class);
         $user = $request->user();
-        $query = Evaluation::query()->with(['user:id,name,email', 'result']);
+        $query = Evaluation::query()->with([
+            'user:id,name,email',
+            'result',
+            'assessment:id,code,name,organizational_axis_id',
+        ]);
 
         if (! $user->isSuperadmin()) {
             $query->where('company_id', $user->company_id);
@@ -51,6 +55,7 @@ class EvaluationController extends Controller
         $evaluation->load([
             'user:id,name,email', 'questions.question.skill.category',
             'questions.question.options', 'responses', 'result.skillResults', 'result.categoryResults',
+            'assessment:id,code,name,description,organizational_axis_id',
         ]);
 
         if ($request->user()->role === UserRole::Collaborator) {

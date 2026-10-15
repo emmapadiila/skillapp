@@ -15,7 +15,11 @@ class QuestionPolicy
 
     public function view(User $user, Question $question): bool
     {
-        return $user->role === UserRole::HumanResources && $user->belongsToCompany($question->company_id);
+        if ($user->role !== UserRole::HumanResources) {
+            return false;
+        }
+
+        return $question->company_id === null || $user->belongsToCompany($question->company_id);
     }
 
     public function viewAny(User $user): bool
@@ -30,11 +34,11 @@ class QuestionPolicy
 
     public function update(User $user, Question $question): bool
     {
-        return $this->view($user, $question);
+        return $question->company_id !== null && $this->view($user, $question);
     }
 
     public function delete(User $user, Question $question): bool
     {
-        return $this->view($user, $question);
+        return $question->company_id !== null && $this->view($user, $question);
     }
 }

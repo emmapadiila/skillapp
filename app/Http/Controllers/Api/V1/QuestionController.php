@@ -21,7 +21,9 @@ class QuestionController extends Controller
         $query = Question::query()->with(['skill.category', 'options']);
 
         if (! $request->user()->isSuperadmin()) {
-            $query->where('company_id', $request->user()->company_id);
+            $query->where(fn ($query) => $query
+                ->whereNull('company_id')
+                ->orWhere('company_id', $request->user()->company_id));
         }
 
         return response()->json(['data' => $query->latest()->paginate(max(1, min($request->integer('per_page', 20), 100)))]);

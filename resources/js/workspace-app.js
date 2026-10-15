@@ -10,7 +10,7 @@ const dependencies = {
     dashboard: ['employees', 'evaluations', 'improvement-plans', 'diagnostics', 'positions', 'skills'],
     inicio: ['evaluations', 'improvement-plans'],
     colaboradores: ['employees', 'positions', 'evaluations', 'areas'],
-    evaluaciones: ['evaluations', 'employees', 'questions'],
+    evaluaciones: ['evaluations', 'employees', 'questions', 'assessments'],
     habilidades: ['skills'], preguntas: ['questions', 'skills'], cargos: ['positions', 'areas', 'skills'],
     diagnostico: ['diagnostics', 'skills'], 'mapa-calor': ['diagnostics', 'skills'], brechas: ['diagnostics', 'skills', 'areas'], recomendaciones: ['diagnostics', 'skills', 'areas'],
     planes: ['improvement-plans', 'employees', 'skills'], seguimiento: ['improvement-plans', 'evaluations', 'employees', 'positions', 'areas'],

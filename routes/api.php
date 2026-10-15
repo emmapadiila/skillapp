@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AreaController;
+use App\Http\Controllers\Api\V1\AssessmentController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CompanyController;
@@ -24,6 +25,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['supabase.auth', 'throttle:api'])->group(function (): void {
         Route::get('me', [AuthController::class, 'me']);
         Route::get('catalogs', [CatalogController::class, 'index']);
+        Route::get('assessments', [AssessmentController::class, 'index']);
         Route::post('catalogs/{catalog}', [CatalogController::class, 'store'])->middleware('role:superadmin');
         Route::put('catalogs/{catalog}/{id}', [CatalogController::class, 'update'])->middleware('role:superadmin');
 

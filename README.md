@@ -1,65 +1,150 @@
-# SkillApp
+# SkillApp — SoftSkills AI
 
-Base organizada para desarrollar SkillApp con Laravel 13, PHP 8.5, Blade, Tailwind CSS y Vite.
+Aplicación web **multiempresa** para gestionar el ciclo completo de **habilidades blandas**
+en una organización: catálogo de competencias, evaluaciones a colaboradores, diagnóstico
+organizacional, brechas por área y planes de mejoramiento con seguimiento.
+
+Construida con **Laravel 13**, **PostgreSQL (Supabase)**, **Supabase Auth**, **Blade**,
+**Tailwind CSS 4** y **Vite**.
+
+## Stack
+
+| Componente | Tecnología |
+|---|---|
+| Backend | Laravel 13 · PHP `^8.3` |
+| Base de datos | PostgreSQL en Supabase (esquema `laravel`) |
+| Autenticación | Supabase Auth (JWT) + middleware propio |
+| Frontend | Blade + Tailwind CSS 4 + Vite 8 + JS vanilla |
+| Tests | PHPUnit 12 (+ test de navegador en `node:test`) |
+| Formato | Laravel Pint |
+
+## Documentación
+
+La documentación completa está en [`docs/`](docs/README.md):
+
+| Documento | Contenido |
+|---|---|
+| [Análisis detallado](docs/analisis-detallado.md) | Módulos, lenguajes y qué se evalúa |
+| [Arquitectura](docs/arquitectura.md) | Capas, estructura y ciclo de una petición |
+| [Base de datos](docs/base-de-datos.md) | Tablas, migraciones y modelo de datos |
+| [API](docs/api.md) | Endpoints `api/v1`, roles, validación y errores |
+| [Autenticación y seguridad](docs/autenticacion-seguridad.md) | Login, roles, policies, cabeceras |
+| [Frontend](docs/frontend.md) | Blade, módulos JS y capa de datos |
+| [Dominio y flujos](docs/dominio-flujos.md) | Evaluaciones, diagnóstico, planes, notificaciones |
+| [Pruebas de habilidades blandas](docs/pruebas-habilidades-blandas.md) | Las tres pruebas exploratorias: contenido, uso y verificación |
+| [Desarrollo y despliegue](docs/desarrollo-despliegue.md) | Configuración, Supabase, tests, producción |
+| [Estado y pendientes](docs/estado-y-pendientes.md) | Cobertura, deuda técnica y roadmap |
 
 ## Estructura del proyecto
 
 ```text
 skillapp/
 ├── app/
+│   ├── Contracts/          Interfaces (AssessmentAnalyzer)
+│   ├── Enums/              Enums de dominio
 │   ├── Http/
-│   │   └── Controllers/    # Reciben solicitudes y devuelven respuestas
-│   ├── Models/             # Modelos y relaciones de Eloquent
-│   └── Providers/          # Registro y arranque de servicios
-├── bootstrap/              # Inicio y caché del framework
-├── config/                 # Configuración de la aplicación
+│   │   ├── Controllers/    Api/V1 y Web
+│   │   ├── Middleware/     Autenticación, roles y cabeceras
+│   │   └── Requests/       Validación de entrada
+│   ├── Models/             Modelos y relaciones de Eloquent
+│   ├── Notifications/      Notificaciones de base de datos
+│   ├── Policies/           Autorización por recurso
+│   ├── Providers/          Binding de IA, rate limiters, Eloquent estricto
+│   └── Services/           Lógica de negocio (evaluación, diagnóstico, auth)
 ├── database/
-│   ├── factories/          # Datos de prueba para modelos
-│   ├── migrations/         # Versionado de la base de datos
-│   └── seeders/            # Datos iniciales
-├── public/                 # Punto de entrada y archivos públicos
+│   ├── factories/          Datos de prueba para modelos
+│   ├── migrations/         Versionado de la base de datos
+│   └── seeders/            Catálogos base
+├── docs/                   Documentación del proyecto
 ├── resources/
-│   ├── css/                # Estilos fuente
-│   ├── js/                 # JavaScript fuente
-│   └── views/              # Plantillas Blade
-├── routes/
-│   ├── console.php         # Comandos y tareas programadas
-│   └── web.php             # Rutas web con sesión y CSRF
-├── storage/                # Logs, caché y archivos generados
-└── tests/
-    ├── Feature/            # Flujos HTTP e integración
-    └── Unit/               # Lógica aislada
+│   ├── css/                Tailwind + componentes
+│   ├── js/                 Workspace (JS vanilla)
+│   └── views/              Plantillas Blade
+├── routes/                 web.php, api.php, console.php
+└── tests/                  Feature y Unit
 ```
-
-La aplicación parte de la estructura estándar de Laravel. Las carpetas `Actions`, `Services`, `Policies`, `Jobs`, `Http/Requests` o `Http/Resources` se crearán con Artisan únicamente cuando una funcionalidad realmente las necesite. Así se evita comenzar con abstracciones vacías.
 
 ## Responsabilidades
 
-- `routes`: conecta una URL con un controlador; no contiene lógica de negocio.
-- `Controllers`: coordina la solicitud, autorización, validación y respuesta.
-- `Requests`: valida y autoriza entradas complejas.
-- `Models`: representa datos, relaciones, conversiones y consultas reutilizables.
-- `Actions` o `Services`: encapsula operaciones de negocio reutilizables o complejas.
-- `Policies`: centraliza permisos sobre recursos.
-- `resources/views`: contiene presentación; no consulta directamente la base de datos.
-- `tests/Feature`: protege el comportamiento que usa una persona desde la web.
+- `routes`: conecta URLs con controladores; no contiene lógica de negocio.
+- `Controllers`: coordina autorización, validación y respuesta.
+- `Requests`: valida entradas complejas.
+- `Services`: encapsula operaciones de negocio reutilizables y transaccionales.
+- `Policies` y middleware `role`: centralizan permisos y aislamiento por empresa.
+- `Models`: representa datos, relaciones y conversiones.
+- `resources/views`: presentación; no consulta directamente la base de datos.
+
+## Puesta en marcha
+
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run build
+composer run dev
+```
+
+La aplicación queda disponible en `http://localhost:8000`.
+
+## PostgreSQL con Supabase
+
+1. Crea un proyecto en Supabase.
+2. Crea el esquema desde el SQL Editor:
+
+```sql
+create schema if not exists laravel;
+```
+
+3. En **Connect**, copia la cadena del **Session Pooler** (puerto `5432`), no la conexión
+   directa (es solo IPv6).
+4. Configura en `.env`:
+
+```dotenv
+DB_CONNECTION=pgsql
+DB_HOST=aws-0-<region>.pooler.supabase.com
+DB_PORT=5432
+DB_DATABASE=postgres
+DB_USERNAME=postgres.<PROJECT_REF>
+DB_PASSWORD=<contraseña>
+DB_SCHEMA=laravel
+DB_SSLMODE=require
+```
+
+5. La autenticación necesita además las API keys (en **Project Settings → API Keys**):
+
+```dotenv
+SUPABASE_URL=https://<PROJECT_REF>.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
+
+Las claves y contraseñas solo viven en `.env` (ignorado por git). Detalle completo y
+solución de problemas en [docs/desarrollo-despliegue.md](docs/desarrollo-despliegue.md).
 
 ## Base de seguridad
 
-- Hosts permitidos para evitar ataques mediante el encabezado `Host`.
-- Encabezados HTTP contra MIME sniffing, clickjacking y permisos innecesarios del navegador.
-- Content Security Policy y HSTS activados automáticamente en producción.
-- Límite general configurable de solicitudes web por usuario o dirección IP.
-- Sesiones cifradas, cookies `HttpOnly` y política `SameSite`.
-- Eloquent estricto fuera de producción para detectar N+1, atributos descartados y accesos inválidos durante el desarrollo.
-- Bloqueo de comandos destructivos de base de datos en producción.
-- Pruebas sin conexiones HTTP externas accidentales, esperas reales ni compilación innecesaria de Vite.
+- Autenticación delegada a Supabase Auth; el usuario local se resuelve por `supabase_user_id`
+  o por correo, y debe estar activo.
+- Aislamiento multiempresa con policies y filtros por `company_id` (recursos ajenos → `404`).
+- Cabeceras HTTP de seguridad, Content Security Policy y HSTS activables por entorno.
+- Límites de peticiones diferenciados para web, API y autenticación.
+- Sesiones cifradas, cookies `HttpOnly` y `SameSite`.
+- Eloquent estricto fuera de producción y bloqueo de comandos destructivos en producción.
+- Pruebas sin conexiones HTTP externas accidentales.
 
-Estas defensas son una base. Cada futura operación deberá añadir validación con Form Requests, autorización con Policies, protección CSRF en formularios y límites específicos para inicio de sesión, recuperación de contraseña o endpoints costosos.
+## Comandos habituales
+
+```bash
+php artisan test --compact
+php artisan migrate:status
+php artisan db:seed
+php artisan schedule:work
+vendor/bin/pint --dirty --format agent
+```
 
 ## Preparación para producción
-
-Antes de publicar, configura como mínimo estas variables en el entorno del servidor:
 
 ```dotenv
 APP_ENV=production
@@ -71,73 +156,13 @@ SECURITY_CSP_ENABLED=true
 SECURITY_HSTS_ENABLED=true
 ```
 
-El servidor web debe apuntar únicamente a `public/`. Durante cada despliegue ejecuta:
+El servidor web debe apuntar únicamente a `public/`. En cada despliegue:
 
-```powershell
+```bash
 composer install --no-dev --optimize-autoloader
 npm ci
 npm run build
 php artisan migrate --force
 php artisan optimize
-php artisan reload
 composer audit
 ```
-
-## Puesta en marcha
-
-Después de reiniciar la terminal para cargar PHP y Composer en el `PATH`:
-
-```powershell
-composer setup
-composer run dev
-```
-
-La aplicación estará disponible normalmente en `http://localhost:8000`.
-
-## PostgreSQL con Supabase
-
-La conexión está preparada para PostgreSQL mediante el driver `pgsql`, SSL obligatorio y el esquema privado `laravel`. No se guardan claves ni contraseñas en el repositorio.
-
-Antes de conectar la aplicación:
-
-1. Crea un proyecto en Supabase.
-2. Crea el esquema desde el SQL Editor de Supabase:
-
-```sql
-create schema if not exists laravel;
-```
-
-3. En el panel `Connect`, copia la cadena del **Session Pooler** que usa el puerto `5432`.
-4. Completa solamente tu archivo local `.env`:
-
-```dotenv
-DB_CONNECTION=pgsql
-DB_URL=postgres://postgres.PROJECT_REF:CONTRASENA@HOST_DEL_POOLER:5432/postgres
-DB_SCHEMA=laravel
-DB_SSLMODE=require
-```
-
-La contraseña debe codificarse para URL si contiene caracteres reservados. Nunca debe escribirse en `.env.example`, archivos PHP, JavaScript o Blade.
-
-Cuando PHP tenga habilitado `pdo_pgsql` y la conexión esté configurada, ejecuta:
-
-```powershell
-php artisan config:clear
-php artisan migrate:status
-php artisan migrate
-```
-
-Las futuras tablas se definirán únicamente mediante migraciones en `database/migrations`. No se ha creado todavía ninguna tabla propia de la aplicación.
-
-## Comandos habituales
-
-```powershell
-php artisan make:model Habilidad -mfsc
-php artisan make:request StoreHabilidadRequest
-php artisan make:policy HabilidadPolicy --model=Habilidad
-php artisan make:test --phpunit HabilidadControllerTest
-php artisan test --compact
-vendor\bin\pint --format agent
-```
-
-Antes de crear una nueva capa, debe existir una necesidad concreta: reutilización, una frontera externa, lógica compleja o una mejora clara de pruebas.

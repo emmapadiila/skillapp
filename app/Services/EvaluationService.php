@@ -6,6 +6,7 @@ use App\Contracts\AssessmentAnalyzer;
 use App\Enums\EvaluationStatus;
 use App\Enums\EvaluationType;
 use App\Enums\QuestionType;
+use App\Models\Assessment;
 use App\Models\CategoryResult;
 use App\Models\Evaluation;
 use App\Models\EvaluationQuestion;
@@ -32,14 +33,37 @@ class EvaluationService
             throw ValidationException::withMessages(['user_id' => 'El colaborador no pertenece a su empresa.']);
         }
 
+        $collaborator->load('position.skills');
+
+        $assessment = null;
         $questionIds = collect($data['question_ids'] ?? []);
-        if ($questionIds->isEmpty()) {
-            $collaborator->load('position.skills');
+
+        if (($data['assessment_id'] ?? null) !== null) {
+            $assessment = Assessment::query()
+                ->whereKey($data['assessment_id'])
+                ->where('is_active', true)
+                ->first();
+
+            if ($assessment === null) {
+                throw ValidationException::withMessages(['assessment_id' => 'La prueba seleccionada no está disponible.']);
+            }
+
+            if ($collaborator->position === null
+                || $collaborator->position->organizational_axis_id !== $assessment->organizational_axis_id) {
+                throw ValidationException::withMessages([
+                    'assessment_id' => 'El cargo del colaborador no corresponde al eje de la prueba seleccionada.',
+                ]);
+            }
+
+            $questionIds = $assessment->questions()->where('is_active', true)->pluck('id');
+        } elseif ($questionIds->isEmpty()) {
             if ($collaborator->position === null || $collaborator->position->skills->isEmpty()) {
                 throw ValidationException::withMessages(['question_count' => 'El colaborador necesita un cargo con competencias configuradas.']);
             }
 
-            $questionIds = Question::query()->where('company_id', $companyId)->where('is_active', true)
+            $questionIds = Question::query()
+                ->where(fn ($query) => $query->whereNull('company_id')->orWhere('company_id', $companyId))
+                ->where('is_active', true)
                 ->whereIn('skill_id', $collaborator->position->skills->modelKeys())
                 ->where(fn ($query) => $query->whereNull('organizational_axis_id')
                     ->orWhere('organizational_axis_id', $collaborator->position->organizational_axis_id))
@@ -47,9 +71,10 @@ class EvaluationService
         }
 
         $questions = Question::query()->whereIn('id', $questionIds)
-            ->where('company_id', $companyId)->where('is_active', true)->get();
+            ->where(fn ($query) => $query->whereNull('company_id')->orWhere('company_id', $companyId))
+            ->where('is_active', true)->get();
 
-        $expectedCount = $data['question_count'] ?? $questionIds->count();
+        $expectedCount = $assessment !== null ? $questionIds->count() : ($data['question_count'] ?? $questionIds->count());
         if ($questions->count() !== $expectedCount) {
             throw ValidationException::withMessages(['question_ids' => 'Todas las preguntas deben estar activas y pertenecer a la empresa.']);
         }
@@ -64,12 +89,13 @@ class EvaluationService
             }
         }
 
-        return DB::transaction(function () use ($actor, $companyId, $collaborator, $data, $questionIds): Evaluation {
+        return DB::transaction(function () use ($actor, $companyId, $collaborator, $data, $questionIds, $assessment): Evaluation {
             $evaluation = Evaluation::query()->create([
                 'company_id' => $companyId,
                 'user_id' => $collaborator->id,
                 'assigned_by' => $actor->id,
                 'parent_evaluation_id' => $data['parent_evaluation_id'] ?? null,
+                'assessment_id' => $assessment?->id,
                 'type' => $data['type'],
                 'status' => EvaluationStatus::Pending,
                 'question_count' => $questionIds->count(),
