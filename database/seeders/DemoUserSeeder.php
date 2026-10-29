@@ -43,8 +43,8 @@ class DemoUserSeeder extends Seeder
             ],
         );
 
-        $this->user('admin@aicroom.test', 'Administrador', UserRole::HumanResources, $company, null, 'SEED_ADMIN_PASSWORD');
-        $this->user('usuario@aicroom.test', 'Usuario Demo', UserRole::Collaborator, $company, $operatorPosition, 'SEED_USER_PASSWORD');
+        $this->user('admin@skillapp.test', 'Administrador', UserRole::HumanResources, $company, null, 'SEED_ADMIN_PASSWORD');
+        $this->user('usuario@skillapp.test', 'Usuario Demo', UserRole::Collaborator, $company, $operatorPosition, 'SEED_USER_PASSWORD');
     }
 
     private function user(string $email, string $name, UserRole $role, Company $company, ?Position $position, string $passwordVariable): void

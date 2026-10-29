@@ -21,8 +21,8 @@ class DemoUserSeederTest extends TestCase
 
         $this->assertSame(2, User::count());
 
-        $admin = User::where('email', 'admin@aicroom.test')->firstOrFail();
-        $collaborator = User::with('position.organizationalAxis')->where('email', 'usuario@aicroom.test')->firstOrFail();
+        $admin = User::where('email', 'admin@skillapp.test')->firstOrFail();
+        $collaborator = User::with('position.organizationalAxis')->where('email', 'usuario@skillapp.test')->firstOrFail();
 
         $this->assertSame(UserRole::HumanResources, $admin->role);
         $this->assertSame(UserRole::Collaborator, $collaborator->role);
