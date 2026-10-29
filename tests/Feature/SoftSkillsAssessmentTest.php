@@ -45,15 +45,22 @@ class SoftSkillsAssessmentTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_the_seeder_installs_three_instruments_with_nine_questions_each(): void
+    /** @var array<string, int> */
+    private const SKILLS_BY_CODE = [
+        'OPERATIVE_SKILLS_V1' => 5,
+        'MISSIONAL_SKILLS_V1' => 5,
+        'STRATEGIC_SKILLS_V1' => 6,
+    ];
+
+    public function test_the_seeder_installs_three_instruments_with_three_questions_per_skill(): void
     {
         $this->assertSame(3, Assessment::count());
-        $this->assertSame(9, Skill::count());
-        $this->assertSame(27, Question::count());
-        $this->assertSame(72, QuestionOption::count());
+        $this->assertSame(16, Skill::count());
+        $this->assertSame(48, Question::count());
+        $this->assertSame(64, QuestionOption::count());
 
         foreach (Assessment::with('questions')->get() as $assessment) {
-            $this->assertCount(9, $assessment->questions, "La prueba {$assessment->code} debe tener 9 preguntas.");
+            $this->assertCount(self::SKILLS_BY_CODE[$assessment->code] * 3, $assessment->questions);
         }
     }
 
@@ -63,12 +70,12 @@ class SoftSkillsAssessmentTest extends TestCase
         $this->seed(AssessmentInstrumentSeeder::class);
 
         $this->assertSame(3, Assessment::count());
-        $this->assertSame(27, Question::count());
-        $this->assertSame(9, Skill::count());
-        $this->assertSame(72, QuestionOption::count());
+        $this->assertSame(48, Question::count());
+        $this->assertSame(16, Skill::count());
+        $this->assertSame(64, QuestionOption::count());
     }
 
-    public function test_each_instrument_covers_its_axis_three_skills_and_all_question_types(): void
+    public function test_each_skill_has_two_likert_items_and_one_situational_judgment_item(): void
     {
         $response = $this->actingAsApi($this->humanResources())->getJson('/api/v1/assessments');
         $response->assertOk()->assertJsonCount(3, 'data.data');
@@ -77,14 +84,11 @@ class SoftSkillsAssessmentTest extends TestCase
             $axisCode = OrganizationalAxis::findOrFail($assessment->organizational_axis_id)->code;
 
             $this->assertSame(self::AXIS_BY_CODE[$assessment->code], $axisCode);
-            $this->assertCount(3, $assessment->questions->pluck('skill_id')->unique());
+            $this->assertCount(self::SKILLS_BY_CODE[$assessment->code], $assessment->questions->pluck('skill_id')->unique());
 
-            foreach (QuestionType::cases() as $type) {
-                $this->assertCount(
-                    3,
-                    $assessment->questions->where('type', $type),
-                    "La prueba {$assessment->code} debe tener 3 preguntas de tipo {$type->value}.",
-                );
+            foreach ($assessment->questions->groupBy('skill_id') as $questions) {
+                $this->assertCount(2, $questions->where('type', QuestionType::SelfReport));
+                $this->assertCount(1, $questions->where('type', QuestionType::SituationalJudgment));
             }
 
             $difficulties = $assessment->questions->pluck('difficulty')->map->value->unique();
@@ -114,7 +118,7 @@ class SoftSkillsAssessmentTest extends TestCase
         $evaluation = Evaluation::findOrFail($created->json('data.id'));
 
         $this->assertSame($assessment->id, $evaluation->assessment_id);
-        $this->assertSame(9, $evaluation->question_count);
+        $this->assertSame(15, $evaluation->question_count);
         $this->assertSame($assessment->organizational_axis_id, $collaborator->refresh()->position->organizational_axis_id);
 
         $this->answerAll($collaborator, $evaluation, likert: 5, optionScore: 5);
@@ -125,7 +129,7 @@ class SoftSkillsAssessmentTest extends TestCase
         $completed->assertOk();
         $this->assertSame(5.0, (float) $completed->json('data.total_score'));
         $this->assertSame('outstanding', $completed->json('data.level'));
-        $this->assertCount(3, $completed->json('data.skill_results'));
+        $this->assertCount(5, $completed->json('data.skill_results'));
         $this->assertCount(3, $completed->json('data.category_results'));
         $this->assertSame('completed', $evaluation->refresh()->status->value);
     }
@@ -213,7 +217,7 @@ class SoftSkillsAssessmentTest extends TestCase
         $created->assertCreated();
         $this->assertSame(1, $created->json('data.total_evaluated'));
         $this->assertCount(3, $created->json('data.matrix_cells'));
-        $this->assertCount(3, $created->json('data.gaps'));
+        $this->assertCount(5, $created->json('data.gaps'));
         $this->assertSame('critical', $created->json('data.gaps.0.priority'));
     }
 

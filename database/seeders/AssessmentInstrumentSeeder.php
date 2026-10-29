@@ -124,117 +124,87 @@ class AssessmentInstrumentSeeder extends Seeder
     {
         return [
             'code' => 'OPERATIVE_SKILLS_V1',
-            'name' => 'Prueba de habilidades operativas (demostración)',
-            'description' => 'Instrumento exploratorio para colaboradores de producción, logística y procesos de apoyo. '
-                .'Explora la comunicación durante el turno, el trabajo en equipo y la gestión del tiempo. '
-                .'Es una prueba de demostración académica pendiente de validación; su resultado es formativo.',
+            'name' => 'Prueba de habilidades blandas — Eje operativo',
+            'description' => 'Para colaboradores de producción, apoyo logístico y equipos de ejecución diaria. '
+                .'Explora el trabajo en equipo, la comunicación entre turnos, la gestión del tiempo, la resolución '
+                .'de problemas y la adaptabilidad. Prueba de demostración académica; su resultado es formativo.',
             'axis' => 'operational',
             'skills' => [
-                [
-                    'name' => 'Comunicación operativa',
-                    'category' => 'communication',
-                    'target_level' => 4,
-                    'description' => 'Transmite novedades, incidentes y pendientes con claridad y oportunidad durante la operación.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'basic',
-                            'text' => 'Cuando identifico una novedad que puede afectar a otros compañeros, la comunico de forma oportuna y clara.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'A pocos minutos de terminar tu turno detectas una incidencia que podría detener el proceso. ¿Cuál es la forma más adecuada de comunicarla?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Termino mi turno y la informo al día siguiente.', 'score' => 1],
-                                ['label' => 'B', 'text' => 'La reporto de inmediato al responsable del turno entrante y dejo registro escrito.', 'score' => 5],
-                                ['label' => 'C', 'text' => 'Intento resolverla solo y solo aviso si no lo logro.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Le comento el caso a un compañero para que él decida si se reporta.', 'score' => 2],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'Debes informar al equipo un cambio en la secuencia de producción que reduce el tiempo disponible de una tarea. ¿Qué haces primero?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Reúno al equipo, explico el motivo del cambio y las nuevas prioridades.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Publico el cambio en el tablero sin explicar el motivo.', 'score' => 3],
-                                ['label' => 'C', 'text' => 'Informo solo a quien me pregunte por qué cambió la tarea.', 'score' => 2],
-                                ['label' => 'D', 'text' => 'Espero a que el cambio llegue por escrito antes de decir algo.', 'score' => 1],
-                            ],
-                        ],
+                $this->skill(
+                    'Trabajo en equipo', 'collaboration',
+                    'Coopera con sus compañeros de línea para cumplir la meta del turno.',
+                    [
+                        'Cuando un compañero de mi línea se atrasa, le ofrezco ayuda sin que me lo pida.',
+                        'Cumplo la parte del trabajo que me corresponde para que el equipo alcance la meta del turno.',
                     ],
-                ],
-                [
-                    'name' => 'Trabajo en equipo',
-                    'category' => 'collaboration',
-                    'target_level' => 4,
-                    'description' => 'Apoya a los compañeros y sostiene la coordinación del grupo frente a dificultades del proceso.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'basic',
-                            'text' => 'Colaboro con mis compañeros cuando una tarea del área se retrasa, aunque no sea mi responsabilidad directa.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Un compañero no alcanza a terminar su parte y tu turno está por cerrar con la meta cumplida. ¿Cómo actúas?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Termino mi tarea y me retiro: su parte es su responsabilidad.', 'score' => 1],
-                                ['label' => 'B', 'text' => 'Le ofrezco ayuda concreta y coordino con el responsable para redistribuir la carga.', 'score' => 5],
-                                ['label' => 'C', 'text' => 'Aviso del retraso al responsable y continúo con lo mío.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Hago su parte sin avisarle para que el proceso no se detenga.', 'score' => 2],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Dos compañeros discuten frente al equipo por la asignación de una tarea. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Escucho a ambos, separo el problema de las personas y propongo una salida concreta.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Les pido que lo resuelvan entre ellos cuando termine el turno.', 'score' => 3],
-                                ['label' => 'C', 'text' => 'Le doy la razón al de mayor experiencia para cerrar la discusión.', 'score' => 2],
-                                ['label' => 'D', 'text' => 'Ignoro la discusión para no tomar partido.', 'score' => 1],
-                            ],
-                        ],
+                    'Faltan dos horas para terminar el turno y la meta está en riesgo porque la estación siguiente no da abasto. Tu estación va al día. ¿Qué haces?',
+                    [
+                        ['Aviso al supervisor y, con su visto bueno, apoyo la estación atrasada sin descuidar la mía.', 5],
+                        ['Sigo con mi trabajo; cada uno responde por su estación.', 1],
+                        ['Le digo a mi compañero que se apure para no afectar la meta.', 2],
+                        ['Lo ayudo por mi cuenta, aunque tenga que dejar sola mi estación.', 3],
                     ],
-                ],
-                [
-                    'name' => 'Gestión del tiempo',
-                    'category' => 'cognitive',
-                    'target_level' => 4,
-                    'description' => 'Prioriza tareas según impacto y urgencia, y sostiene los compromisos del turno.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Organizo mis tareas por prioridad antes de comenzar la jornada.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'advanced',
-                            'text' => 'Al iniciar el turno tienes tres pendientes y tiempo para completar solo dos. ¿Qué criterio aplicas?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Empiezo por la que me resulta más cómoda de hacer.', 'score' => 2],
-                                ['label' => 'B', 'text' => 'Evalúo el impacto y la urgencia de cada una y priorizo la más crítica.', 'score' => 5],
-                                ['label' => 'C', 'text' => 'Avanzo las tres al mismo tiempo para no dejar ninguna atrás.', 'score' => 1],
-                                ['label' => 'D', 'text' => 'Pregunto a un compañero cuál haría él y sigo esa recomendación.', 'score' => 3],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'Un imprevisto consume la mitad de tu turno y aún tienes tareas comprometidas. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Reprogramo lo pendiente con el responsable según el impacto y comunico el nuevo plan.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Acelero todo para cumplir, aunque deba saltar verificaciones.', 'score' => 1],
-                                ['label' => 'C', 'text' => 'Cumplo solo las tareas fáciles y dejo el resto para el día siguiente.', 'score' => 2],
-                                ['label' => 'D', 'text' => 'Reporto al final del turno que no fue posible cumplir con todo.', 'score' => 3],
-                            ],
-                        ],
+                ),
+                $this->skill(
+                    'Comunicación operativa', 'communication',
+                    'Transmite novedades, incidentes y pendientes con claridad entre turnos y equipos.',
+                    [
+                        'Al entregar el turno, informo las novedades de la máquina a quien me recibe.',
+                        'Cuando no entiendo una instrucción, pregunto antes de empezar la tarea.',
                     ],
-                ],
+                    'Durante tu turno una máquina falló y quedó funcionando con un arreglo temporal. Ya vas a entregar el turno. ¿Qué haces?',
+                    [
+                        ['Explico la falla y el arreglo temporal a quien me recibe y lo dejo anotado en la bitácora de entrega.', 5],
+                        ['No digo nada porque la máquina ya está funcionando.', 1],
+                        ['Lo comento de pasada con algún compañero del siguiente turno.', 2],
+                        ['Lo anoto en la bitácora, pero no lo hablo con quien me recibe.', 3],
+                    ],
+                ),
+                $this->skill(
+                    'Gestión del tiempo', 'cognitive',
+                    'Prioriza y organiza las tareas del turno para cumplirlas a tiempo.',
+                    [
+                        'Organizo mis tareas del turno para terminar primero las más importantes.',
+                        'Llego a mi puesto con tiempo suficiente para iniciar la operación a la hora indicada.',
+                    ],
+                    'Al iniciar el turno te asignan tres tareas: alistar material para un pedido urgente, limpiar tu área y reponer etiquetas que se acabarán a media mañana. ¿Cómo te organizas?',
+                    [
+                        ['Empiezo por el pedido urgente, repongo las etiquetas antes de que se acaben y hago la limpieza en un momento de menos carga.', 5],
+                        ['Hago primero la limpieza porque es lo más rápido.', 2],
+                        ['Hago las tareas en el orden en que me las dieron.', 3],
+                        ['Espero a que el supervisor me diga qué hacer en cada momento.', 1],
+                    ],
+                ),
+                $this->skill(
+                    'Resolución de problemas inmediatos', 'cognitive',
+                    'Identifica y atiende los problemas que surgen en su puesto durante la operación.',
+                    [
+                        'Cuando surge un problema en mi puesto, busco la causa antes de aplicar una solución.',
+                        'Si no puedo resolver un problema por mi cuenta, lo reporto de inmediato a quien corresponde.',
+                    ],
+                    'Notas que varios productos salen de la máquina con un defecto que antes no aparecía. ¿Qué haces?',
+                    [
+                        ['Separo el producto defectuoso, reviso los ajustes que conozco y, si no encuentro la causa, aviso al supervisor o a mantenimiento.', 5],
+                        ['Sigo produciendo y aviso al final del turno.', 1],
+                        ['Detengo la máquina y espero a que pase el supervisor para que la revise.', 3],
+                        ['Muevo los ajustes de la máquina a prueba y error hasta que el defecto desaparezca.', 2],
+                    ],
+                ),
+                $this->skill(
+                    'Adaptabilidad', 'cognitive',
+                    'Se ajusta a los cambios en la asignación de tareas sin perder calidad ni seguridad.',
+                    [
+                        'Cuando me cambian de puesto o de tarea, me adapto rápido a la nueva actividad.',
+                        'Mantengo la calidad de mi trabajo aunque cambien las prioridades del día.',
+                    ],
+                    'A mitad del turno te trasladan a otra línea porque falta personal, y nunca has operado esa máquina. ¿Qué haces?',
+                    [
+                        ['Acepto el cambio, pido una explicación al operario o al supervisor y repaso las normas de seguridad antes de empezar.', 5],
+                        ['Me niego porque no es mi puesto habitual.', 1],
+                        ['Acepto, pero empiezo a operar sin preguntar para no quitarle tiempo a nadie.', 2],
+                        ['Acepto a regañadientes y le pido al supervisor que sea solo por hoy.', 3],
+                    ],
+                ),
             ],
         ];
     }
@@ -246,118 +216,87 @@ class AssessmentInstrumentSeeder extends Seeder
     {
         return [
             'code' => 'MISSIONAL_SKILLS_V1',
-            'name' => 'Prueba de habilidades misionales (demostración)',
-            'description' => 'Instrumento exploratorio para colaboradores de procesos centrales de valor, relación '
-                .'con clientes y articulación entre áreas. Explora la comunicación asertiva, la empatía con el '
-                .'cliente y la colaboración interfuncional. Es una prueba de demostración académica pendiente '
-                .'de validación; su resultado es formativo.',
+            'name' => 'Prueba de habilidades blandas — Eje misional',
+            'description' => 'Para colaboradores ligados a la relación con clientes y a los estándares de calidad del producto. '
+                .'Explora la orientación al cliente, la empatía, la comunicación asertiva, la colaboración entre áreas '
+                .'y el compromiso con la calidad. Prueba de demostración académica; su resultado es formativo.',
             'axis' => 'mission',
             'skills' => [
-                [
-                    'name' => 'Comunicación asertiva',
-                    'category' => 'communication',
-                    'target_level' => 4,
-                    'description' => 'Expresa acuerdos y desacuerdos con claridad y respeto, y sostiene compromisos realistas.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'basic',
-                            'text' => 'Expreso mis desacuerdos con respeto y sin dejar de decir lo que pienso.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Un cliente insiste en un cambio que no es posible cumplir en el plazo que pide. ¿Cómo se lo comunicas?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Le digo que es imposible y cierro la conversación.', 'score' => 1],
-                                ['label' => 'B', 'text' => 'Le explico el alcance real, ofrezco alternativas y confirmo un nuevo plazo.', 'score' => 5],
-                                ['label' => 'C', 'text' => 'Le prometo el cambio para no incomodarlo y después reviso cómo cumplirlo.', 'score' => 2],
-                                ['label' => 'D', 'text' => 'Evito responder hasta tener una respuesta definitiva.', 'score' => 3],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'En una reunión entre áreas tu propuesta es criticada duramente frente a todos. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Escucho, pregunto en qué se basa la crítica y respondo con argumentos.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Defiendo mi propuesta subiendo el tono para no perder credibilidad.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Retiro la propuesta para evitar el conflicto.', 'score' => 1],
-                                ['label' => 'D', 'text' => 'Pido continuar la discusión en privado al terminar la reunión.', 'score' => 3],
-                            ],
-                        ],
+                $this->skill(
+                    'Orientación al cliente', 'communication',
+                    'Entiende y atiende las necesidades del cliente con soluciones concretas.',
+                    [
+                        'Tengo presente que el producto que fabrico o despacho debe cumplir lo que el cliente espera.',
+                        'Cuando un cliente presenta una queja, busco entender qué necesita antes de responder.',
                     ],
-                ],
-                [
-                    'name' => 'Empatía y orientación al cliente',
-                    'category' => 'collaboration',
-                    'target_level' => 4,
-                    'description' => 'Comprende la necesidad del cliente y sostiene una respuesta honesta y oportuna ante inconformidades.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'basic',
-                            'text' => 'Escucho completo el reclamo de un cliente antes de proponer una solución.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Un cliente reporta un retraso y está molesto. Necesitas coordinar la respuesta con otra área. ¿Qué haces primero?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Reconozco su molestia, confirmo los datos del pedido y averiguo el estado real con el área responsable.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Le explico que el retraso no depende de mi área.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Le ofrezco una compensación sin consultarlo con nadie.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Le pido que vuelva a escribir más tarde.', 'score' => 1],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'Varios clientes reportan el mismo problema y el área técnica todavía no encuentra la causa. ¿Cómo procedes?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Informo un estado real, dejo un canal de seguimiento y presiono internamente con evidencia.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Espero a que el área técnica resuelva para no dar información equivocada.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Respondo a cada cliente con mensajes distintos según su insistencia.', 'score' => 1],
-                                ['label' => 'D', 'text' => 'Escalo el caso a la dirección y dejo de responder consultas.', 'score' => 3],
-                            ],
-                        ],
+                    'Un cliente llama molesto porque su pedido llegó con menos unidades de las facturadas. ¿Qué haces?',
+                    [
+                        ['Lo escucho, verifico el pedido en el sistema, le doy una solución con fecha concreta y le hago seguimiento.', 5],
+                        ['Le digo que el problema seguramente fue de la transportadora.', 1],
+                        ['Le pido que envíe un correo para revisarlo cuando haya tiempo.', 2],
+                        ['Le ofrezco disculpas y le prometo que se resolverá, sin verificar todavía qué pasó.', 3],
                     ],
-                ],
-                [
-                    'name' => 'Colaboración interfuncional',
-                    'category' => 'collaboration',
-                    'target_level' => 4,
-                    'description' => 'Coordina con otras áreas, comparte información y resuelve desacuerdos en función del servicio.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Cuando una tarea depende de otra área, mantengo informados a quienes la necesitan.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Tu área y otra dependencia manejan información distinta sobre un compromiso con un cliente. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Acuerdo con ambas partes una versión única del dato y la dejo registrada.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Defiendo la información de mi área porque es la correcta.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Pido a la dirección que decida cuál dato se debe usar.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Dejo que cada área responda con su propia información.', 'score' => 1],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'Otra área incumple un acuerdo y eso afecta la calidad del servicio. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Hablo con su responsable, muestro el impacto y propongo un ajuste conjunto.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Reporto el incumplimiento a la dirección sin avisar al área.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Asumo el trabajo del área para no afectar al cliente, sin comentarlo.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Documento el incumplimiento y espero a que se repita.', 'score' => 1],
-                            ],
-                        ],
+                ),
+                $this->skill(
+                    'Empatía', 'communication',
+                    'Comprende la situación y las emociones de compañeros y clientes antes de actuar.',
+                    [
+                        'Antes de juzgar la reacción de alguien, intento entender cómo se siente.',
+                        'Escucho a mis compañeros y clientes sin interrumpirlos.',
                     ],
-                ],
+                    'Un compañero de otra área, normalmente cumplido, lleva varios días entregando tarde la información que necesitas y se le ve preocupado. ¿Qué haces?',
+                    [
+                        ['Busco un momento para hablar con él en privado, le pregunto cómo está y acordamos cómo organizar las entregas.', 5],
+                        ['Me quejo con su jefe para que lo corrija.', 2],
+                        ['Hago su parte yo mismo sin decirle nada.', 3],
+                        ['Le reclamo frente a todos para que entienda que está afectando mi trabajo.', 1],
+                    ],
+                ),
+                $this->skill(
+                    'Comunicación asertiva con partes interesadas', 'communication',
+                    'Expresa posiciones y límites con claridad y respeto ante clientes, proveedores y otras áreas.',
+                    [
+                        'Expreso mi desacuerdo con respeto, sin quedarme callado.',
+                        'Informo los retrasos a clientes o proveedores en cuanto los conozco.',
+                    ],
+                    'Un cliente importante exige adelantar una entrega a una fecha que la planta no puede cumplir. ¿Cómo respondes?',
+                    [
+                        ['Le explico con respeto la capacidad real, le propongo una entrega parcial o una fecha alcanzable y confirmo el acuerdo por escrito.', 5],
+                        ['Acepto la fecha para no perder al cliente y luego veo cómo se cumple.', 1],
+                        ['Le digo que no es posible y termino la conversación.', 2],
+                        ['Le pido que hable directamente con el área de producción.', 3],
+                    ],
+                ),
+                $this->skill(
+                    'Colaboración interfuncional', 'collaboration',
+                    'Trabaja con otras áreas para resolver problemas que ninguna puede resolver sola.',
+                    [
+                        'Comparto con otras áreas la información que necesitan para hacer bien su trabajo.',
+                        'Cuando un problema involucra a varias áreas, participo en la búsqueda de una solución conjunta.',
+                    ],
+                    'Calidad rechazó un lote y Producción dice que el problema viene de la materia prima que compró otra área. ¿Qué haces?',
+                    [
+                        ['Propongo una reunión corta entre Calidad, Producción y Compras para revisar los datos del lote y acordar acciones.', 5],
+                        ['Defiendo a mi área y dejo que las demás lo resuelvan.', 1],
+                        ['Escalo el problema a gerencia para que decida quién tiene la culpa.', 2],
+                        ['Reviso solo lo que le corresponde a mi área y lo informo por correo.', 3],
+                    ],
+                ),
+                $this->skill(
+                    'Compromiso con los estándares de calidad', 'cognitive',
+                    'Cumple los procedimientos de calidad aun bajo presión de tiempo.',
+                    [
+                        'Sigo los procedimientos de calidad aunque nadie me esté supervisando.',
+                        'Reporto los productos no conformes que detecto, aunque eso retrase la entrega.',
+                    ],
+                    'Para cumplir una entrega urgente, te sugieren despachar un lote al que le falta la inspección final de calidad. ¿Qué haces?',
+                    [
+                        ['No lo despacho sin inspección; aviso del posible retraso y pido que se priorice la inspección.', 5],
+                        ['Lo despacho porque el cliente necesita el producto.', 1],
+                        ['Despacho una parte sin inspeccionar y dejo el resto para revisión.', 2],
+                        ['Hago una revisión rápida por mi cuenta y lo despacho.', 3],
+                    ],
+                ),
             ],
         ];
     }
@@ -369,116 +308,132 @@ class AssessmentInstrumentSeeder extends Seeder
     {
         return [
             'code' => 'STRATEGIC_SKILLS_V1',
-            'name' => 'Prueba de habilidades estratégicas (demostración)',
-            'description' => 'Instrumento exploratorio para responsables de dirección, planificación y toma de '
-                .'decisiones. Explora el liderazgo, la decisión basada en información y la gestión del cambio. '
-                .'Es una prueba de demostración académica pendiente de validación; su resultado es formativo.',
+            'name' => 'Prueba de habilidades blandas — Eje estratégico',
+            'description' => 'Para gerencia y cargos de dirección y planeación. Explora el liderazgo, la toma de decisiones '
+                .'basada en datos, el pensamiento estratégico, la negociación, la gestión del cambio y la inteligencia '
+                .'emocional. Prueba de demostración académica; su resultado es formativo.',
             'axis' => 'strategic',
             'skills' => [
-                [
-                    'name' => 'Liderazgo',
-                    'category' => 'leadership',
-                    'target_level' => 5,
-                    'description' => 'Acompaña al equipo, gestiona conflictos y decide con criterios explicables.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'basic',
-                            'text' => 'Acompaño a mi equipo cuando enfrenta dificultades, en lugar de limitarme a señalar errores.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Dos integrantes del equipo mantienen un conflicto que afecta los resultados. ¿Cómo lo abordas?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Hablo por separado con cada uno, identifico el origen y acordamos compromisos concretos.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Cambio a uno de ellos de equipo para evitar el conflicto.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Espero a que el conflicto se resuelva solo con el tiempo.', 'score' => 1],
-                                ['label' => 'D', 'text' => 'Les pido que dejen sus diferencias fuera del trabajo.', 'score' => 3],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'Debes asignar un proyecto clave a alguien del equipo. ¿En qué te basas?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Evalúo competencias, carga actual y oportunidad de desarrollo, y explico la decisión.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Se lo asigno a la persona con más antigüedad para no generar molestias.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Se lo asigno a quien tenga más disponibilidad en el momento.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Asumo yo el proyecto para asegurar el resultado.', 'score' => 1],
-                            ],
-                        ],
+                $this->skill(
+                    'Liderazgo', 'leadership',
+                    'Orienta y motiva al equipo hacia las metas, dando sentido a lo que se pide.',
+                    [
+                        'Explico a mi equipo el porqué de las metas, no solo lo que deben hacer.',
+                        'Reconozco públicamente los logros de las personas de mi equipo.',
                     ],
-                ],
-                [
-                    'name' => 'Toma de decisiones basada en información',
-                    'category' => 'cognitive',
-                    'target_level' => 5,
-                    'description' => 'Contrasta datos y evidencia antes de decidir, y explica el criterio usado.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'basic',
-                            'text' => 'Antes de decidir reviso los datos disponibles en lugar de guiarme solo por la intuición.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Debes elegir entre dos proveedores y solo tienes la recomendación verbal de un colega. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Comparo costos, tiempos y antecedentes de ambos con datos verificables antes de decidir.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Elijo el que recomendó el colega porque lo conoce.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Elijo el más económico sin revisar su desempeño.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Pospongo la decisión hasta que otra persona la tome.', 'score' => 1],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'Los indicadores muestran una caída, pero la causa no es evidente. ¿Cómo procedes?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Formulo hipótesis, las contrasto con datos de varias fuentes y decido con evidencia.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Tomo la primera explicación disponible y actúo de inmediato.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Espero al siguiente informe para ver si la caída se mantiene.', 'score' => 3],
-                                ['label' => 'D', 'text' => 'Cambio el proceso completo para cubrir todas las posibilidades.', 'score' => 1],
-                            ],
-                        ],
+                    'La planta lleva dos meses sin cumplir la meta de producción y el ánimo de los supervisores está bajo. ¿Qué haces?',
+                    [
+                        ['Me reúno con ellos, revisamos juntos las causas, acordamos metas intermedias y hago seguimiento semanal.', 5],
+                        ['Les advierto que habrá sanciones si no se cumple la meta el próximo mes.', 1],
+                        ['Bajo la meta para que sea más fácil de cumplir.', 2],
+                        ['Asumo personalmente la supervisión de las líneas.', 3],
                     ],
-                ],
-                [
-                    'name' => 'Gestión del cambio',
-                    'category' => 'leadership',
-                    'target_level' => 5,
-                    'description' => 'Acompaña la transformación, gestiona la resistencia y ajusta el plan con evidencia.',
-                    'questions' => [
-                        [
-                            'type' => 'self_report',
-                            'difficulty' => 'intermediate',
-                            'text' => 'Cuando un cambio afecta mi trabajo, busco entender su propósito antes de oponerme.',
-                        ],
-                        [
-                            'type' => 'situational',
-                            'difficulty' => 'intermediate',
-                            'text' => 'La organización implementará un nuevo proceso y parte del equipo se resiste. ¿Cómo abordas la situación?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Escucho las razones de la resistencia, explico el propósito y acompaño la transición por etapas.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Comunico que el cambio es obligatorio y que debe aplicarse desde mañana.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Implemento el cambio solo con quienes están de acuerdo.', 'score' => 1],
-                                ['label' => 'D', 'text' => 'Propongo posponer el cambio hasta que todos estén convencidos.', 'score' => 3],
-                            ],
-                        ],
-                        [
-                            'type' => 'situational_judgment',
-                            'difficulty' => 'advanced',
-                            'text' => 'A mitad de la implementación de un cambio detectas efectos no previstos en un área. ¿Qué haces?',
-                            'options' => [
-                                ['label' => 'A', 'text' => 'Analizo el impacto con datos, ajusto el plan y comunico el ajuste a los afectados.', 'score' => 5],
-                                ['label' => 'B', 'text' => 'Continúo según lo planeado para no perder el avance logrado.', 'score' => 2],
-                                ['label' => 'C', 'text' => 'Cancelo el cambio hasta tenerlo todo previsto.', 'score' => 1],
-                                ['label' => 'D', 'text' => 'Delego el problema al área afectada para que se adapte.', 'score' => 3],
-                            ],
-                        ],
+                ),
+                $this->skill(
+                    'Toma de decisiones basada en datos', 'leadership',
+                    'Contrasta indicadores y evidencia antes de decidir, y explica el criterio usado.',
+                    [
+                        'Antes de tomar una decisión importante, reviso los indicadores disponibles.',
+                        'Cuando los datos contradicen mi opinión, estoy dispuesto a cambiar mi decisión.',
                     ],
+                    'Debes decidir si compras una segunda máquina para una línea. El jefe de producción insiste en que es urgente, pero no hay datos de uso de la máquina actual. ¿Qué haces?',
+                    [
+                        ['Pido datos de utilización, paradas y demanda proyectada, y decido con esa información en un plazo definido.', 5],
+                        ['La compro porque el jefe de producción conoce mejor la línea.', 2],
+                        ['Aplazo la decisión hasta tener certeza total.', 1],
+                        ['Comparo precios de proveedores y compro la más económica.', 3],
+                    ],
+                ),
+                $this->skill(
+                    'Pensamiento estratégico', 'leadership',
+                    'Anticipa escenarios y conecta las decisiones actuales con los objetivos de largo plazo.',
+                    [
+                        'Pienso en cómo las decisiones de hoy afectarán a la empresa en los próximos años.',
+                        'Sigo los cambios del mercado que pueden afectar a la empresa.',
+                    ],
+                    'Un cliente que representa el 40 % de las ventas anuncia que reducirá sus pedidos el próximo año. ¿Qué haces?',
+                    [
+                        ['Analizo el impacto, defino con el equipo directivo un plan para diversificar clientes y ajusto la planeación de producción.', 5],
+                        ['Reduzco personal de inmediato para bajar costos.', 2],
+                        ['Espero a ver si el cliente realmente reduce sus pedidos.', 1],
+                        ['Le ofrezco descuentos al cliente para que mantenga sus pedidos.', 3],
+                    ],
+                ),
+                $this->skill(
+                    'Negociación', 'communication',
+                    'Busca acuerdos sostenibles que protejan los intereses de la empresa y de la otra parte.',
+                    [
+                        'En una negociación, busco acuerdos que beneficien a ambas partes.',
+                        'Antes de negociar, defino hasta dónde puedo ceder.',
+                    ],
+                    'El principal proveedor de materia prima anuncia un aumento del 15 % en el precio. ¿Cómo lo manejas?',
+                    [
+                        ['Reviso el historial de compras y las alternativas del mercado, y le propongo al proveedor un acuerdo de volumen o plazo que nos sirva a ambos.', 5],
+                        ['Acepto el aumento para no arriesgar el suministro.', 2],
+                        ['Termino la relación y busco otro proveedor de inmediato.', 1],
+                        ['Pido un descuento sin llevar una propuesta concreta.', 3],
+                    ],
+                ),
+                $this->skill(
+                    'Gestión del cambio', 'leadership',
+                    'Acompaña la transformación, gestiona la resistencia y ajusta el plan con evidencia.',
+                    [
+                        'Cuando lidero un cambio, explico a las personas por qué es necesario.',
+                        'Escucho las preocupaciones de las personas antes de implementar un cambio.',
+                    ],
+                    'La empresa implementará un nuevo sistema de control de producción y los supervisores con más antigüedad se resisten. ¿Cómo lo abordas?',
+                    [
+                        ['Escucho sus razones, los involucro en un piloto, programo capacitación y acompaño la transición por etapas.', 5],
+                        ['Les comunico que el cambio es obligatorio desde la próxima semana.', 2],
+                        ['Aplazo el sistema hasta que todos estén de acuerdo.', 3],
+                        ['Implemento el sistema solo con los supervisores nuevos y dejo de lado a los demás.', 1],
+                    ],
+                ),
+                $this->skill(
+                    'Inteligencia emocional', 'leadership',
+                    'Reconoce y regula sus emociones y las del equipo al conducirlo.',
+                    [
+                        'Reconozco cuándo mis emociones pueden afectar la forma en que trato a mi equipo.',
+                        'En momentos de presión, mantengo la calma al dar instrucciones.',
+                    ],
+                    'En una reunión, un jefe de área te responde de forma agresiva frente a otros por una decisión que tomaste. ¿Qué haces?',
+                    [
+                        ['Mantengo la calma, reconozco su inconformidad y le propongo hablar en privado después de la reunión.', 5],
+                        ['Le respondo en el mismo tono para dejar clara mi autoridad.', 1],
+                        ['Ignoro el comentario y sigo con la reunión.', 3],
+                        ['Termino la reunión de inmediato.', 2],
+                    ],
+                ),
+            ],
+        ];
+    }
+
+    /**
+     * Cada habilidad se mide con dos ítems Likert (1–5) y un ítem de juicio situacional de 4 opciones.
+     *
+     * @param  array{0: string, 1: string}  $selfReports
+     * @param  array<int, array{0: string, 1: int}>  $options  [texto, puntaje 1–5]
+     * @return array<string, mixed>
+     */
+    private function skill(string $name, string $category, string $description, array $selfReports, string $scenario, array $options): array
+    {
+        return [
+            'name' => $name,
+            'category' => $category,
+            'target_level' => 4,
+            'description' => $description,
+            'questions' => [
+                ['type' => 'self_report', 'difficulty' => 'basic', 'text' => $selfReports[0]],
+                ['type' => 'self_report', 'difficulty' => 'intermediate', 'text' => $selfReports[1]],
+                [
+                    'type' => 'situational_judgment',
+                    'difficulty' => 'advanced',
+                    'text' => $scenario,
+                    'options' => array_map(
+                        fn (array $option, string $label): array => ['label' => $label, 'text' => $option[0], 'score' => $option[1]],
+                        $options,
+                        ['A', 'B', 'C', 'D'],
+                    ),
                 ],
             ],
         ];

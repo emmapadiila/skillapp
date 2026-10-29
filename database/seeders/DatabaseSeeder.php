@@ -29,6 +29,6 @@ class DatabaseSeeder extends Seeder
             ['code' => 'leadership', 'name' => 'Dirección', 'description' => null, 'is_active' => true],
         ], ['code'], ['name', 'description', 'is_active']);
 
-        $this->call(AssessmentInstrumentSeeder::class);
+        $this->call([AssessmentInstrumentSeeder::class, DemoUserSeeder::class]);
     }
 }
