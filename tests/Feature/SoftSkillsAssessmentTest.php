@@ -16,6 +16,7 @@ use App\Models\Skill;
 use App\Models\SkillCategory;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -300,6 +301,47 @@ class SoftSkillsAssessmentTest extends TestCase
 
         $this->assertSame('expired', $evaluation->refresh()->status->value);
         $this->assertSame(0, $evaluation->responses()->count());
+    }
+
+    public function test_an_answer_returns_422_if_the_evaluation_expires_while_waiting_for_the_lock(): void
+    {
+        $this->freezeSecond();
+
+        try {
+            $company = Company::factory()->create();
+            $collaborator = $this->user($company, UserRole::Collaborator);
+            $assessment = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->firstOrFail();
+            $this->positionFor($collaborator, OrganizationalAxis::where('code', 'operational')->firstOrFail(), $assessment, requiredLevel: 3);
+            $evaluation = Evaluation::findOrFail($this->actingAsApi($collaborator)->postJson('/api/v1/evaluations/start')->json('data.id'));
+            $questionId = $evaluation->questions()->firstOrFail()->id;
+            $transactionLevel = DB::transactionLevel();
+            $deadlinePassedDuringRead = false;
+
+            $this->assertTrue($evaluation->due_at->isFuture());
+
+            DB::listen(function (QueryExecuted $query) use ($evaluation, $transactionLevel, &$deadlinePassedDuringRead): void {
+                // SQLite omite FOR UPDATE. El nivel de transacción distingue esta lectura del route binding.
+                if (! $deadlinePassedDuringRead
+                    && $query->connection->transactionLevel() > $transactionLevel
+                    && str_starts_with($query->sql, 'select * from "evaluations"')
+                    && $query->bindings === [$evaluation->id]) {
+                    $deadlinePassedDuringRead = true;
+                    $this->travelTo($evaluation->due_at->copy()->addSecond());
+                }
+            });
+
+            $response = $this->actingAsApi($collaborator)->postJson("/api/v1/evaluations/{$evaluation->id}/responses", [
+                'evaluation_question_id' => $questionId,
+                'likert_value' => 4,
+            ]);
+
+            $this->assertTrue($deadlinePassedDuringRead, 'No se detectó la lectura de la evaluación dentro de la transacción.');
+            $response->assertUnprocessable()->assertJsonValidationErrors(['evaluation' => 'La evaluación está vencida.']);
+            $this->assertSame('expired', $evaluation->refresh()->status->value);
+            $this->assertSame(0, $evaluation->responses()->where('evaluation_question_id', $questionId)->count());
+        } finally {
+            $this->travelBack();
+        }
     }
 
     public function test_only_collaborators_with_a_position_can_start_an_assessment(): void
