@@ -7,15 +7,14 @@ import { DASHBOARD_SCREENS, dashboardQuery } from './workspace-dashboards';
 import { openRecordForm, recordAction } from './workspace-forms';
 
 const root = document.querySelector('[data-workspace]');
-const titles = { 'tablero-operativo': 'Tablero del eje operativo', 'tablero-misional': 'Tablero del eje misional', 'tablero-estrategico': 'Tablero del eje estratégico', dashboard: 'Diagnóstico Organizacional', inicio: 'Inicio', colaboradores: 'Colaboradores', evaluaciones: 'Evaluaciones', habilidades: 'Catálogo de habilidades', preguntas: 'Banco de preguntas', cargos: 'Cargos', diagnostico: 'Diagnóstico organizacional', 'mapa-calor': 'Mapa de diagnóstico', brechas: 'Brechas organizacionales', recomendaciones: 'Recomendaciones inteligentes', planes: 'Planes de mejoramiento', seguimiento: 'Seguimiento', reportes: 'Reportes', evaluacion: 'Mi evaluación', resultados: 'Mis resultados', plan: 'Mi plan de mejoramiento', progreso: 'Mi progreso', perfil: 'Mi perfil', notificaciones: 'Notificaciones', 'perfil-colaborador': 'Perfil del colaborador', areas: 'Áreas', empresas: 'Empresas' };
+const titles = { 'tablero-operativo': 'Tablero del eje operativo', 'tablero-misional': 'Tablero del eje misional', 'tablero-estrategico': 'Tablero del eje estratégico', inicio: 'Inicio', colaboradores: 'Colaboradores', evaluaciones: 'Evaluaciones', habilidades: 'Catálogo de habilidades', preguntas: 'Banco de preguntas', cargos: 'Cargos', diagnostico: 'Diagnóstico organizacional', brechas: 'Brechas organizacionales', recomendaciones: 'Recomendaciones inteligentes', planes: 'Planes de mejoramiento', seguimiento: 'Seguimiento', reportes: 'Reportes', evaluacion: 'Mi evaluación', resultados: 'Mis resultados', plan: 'Mi plan de mejoramiento', progreso: 'Mi progreso', perfil: 'Mi perfil', notificaciones: 'Notificaciones', 'perfil-colaborador': 'Perfil del colaborador', areas: 'Áreas', empresas: 'Empresas' };
 const dependencies = {
-    dashboard: ['employees', 'evaluations', 'improvement-plans', 'diagnostics', 'positions', 'skills'],
-    inicio: ['evaluations', 'improvement-plans'],
+        inicio: ['evaluations', 'improvement-plans'],
     'tablero-operativo': ['areas', 'positions'], 'tablero-misional': ['areas', 'positions'], 'tablero-estrategico': ['areas', 'positions'],
     colaboradores: ['employees', 'positions', 'evaluations', 'areas'],
     evaluaciones: ['evaluations', 'employees', 'questions', 'assessments'],
     habilidades: ['skills'], preguntas: ['questions', 'skills'], cargos: ['positions', 'areas', 'skills'],
-    diagnostico: ['diagnostics', 'skills'], 'mapa-calor': ['diagnostics', 'skills'], brechas: ['diagnostics', 'skills', 'areas'], recomendaciones: ['diagnostics', 'skills', 'areas'],
+    diagnostico: ['diagnostics', 'skills'], brechas: ['diagnostics', 'skills', 'areas'], recomendaciones: ['diagnostics', 'skills', 'areas'],
     planes: ['improvement-plans', 'employees', 'skills'], seguimiento: ['improvement-plans', 'evaluations', 'employees', 'positions', 'areas'],
     reportes: ['evaluations', 'employees', 'positions', 'areas', 'improvement-plans', 'diagnostics'],
     evaluacion: ['evaluations', 'assessments'], resultados: ['evaluations'], plan: ['improvement-plans'], progreso: ['evaluations', 'improvement-plans'],
@@ -78,7 +77,7 @@ if (root) {
     function render() {
         document.querySelector('#workspace-title').textContent = titles[ctx.screen];
         document.querySelector('#workspace-breadcrumb').textContent = titles[ctx.screen];
-        document.querySelector('[aria-label="Ruta"]').hidden = ['inicio', 'dashboard'].includes(ctx.screen);
+        document.querySelector('[aria-label="Ruta"]').hidden = ['inicio', 'tablero-estrategico'].includes(ctx.screen);
         document.title = `${titles[ctx.screen]} | SkillDiagnóstico IA`;
         document.querySelectorAll('[data-screen-link]').forEach((el) => {
             if (el.dataset.screenLink === (ctx.screen === 'perfil-colaborador' ? 'colaboradores' : ctx.screen)) el.setAttribute('aria-current', 'page');
@@ -116,7 +115,7 @@ if (root) {
                 const query = dashboardQuery(ctx);
                 ctx.data.axisDashboard = await getData(`dashboards/axes${query ? `?${query}` : ''}`);
             }
-            if (['dashboard', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) {
+            if (['diagnostico', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) {
                 const companyId = ctx.state.filters.company_id || ctx.user.company_id;
                 const snapshots = ctx.records('diagnostics').filter((d) => !companyId || String(d.company_id) === String(companyId));
                 const diagnostic = snapshots.find((d) => String(d.id) === String(ctx.state.filters.diagnostic_id)) ?? snapshots[0];
@@ -180,7 +179,7 @@ if (root) {
         if (DASHBOARD_SCREENS[ctx.screen]) {
             if (event.target.dataset.filter === 'area_id') delete ctx.state.filters.position_id;
             load();
-        } else if (['company_id', 'diagnostic_id'].includes(event.target.dataset.filter) && ['dashboard', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) load();
+        } else if (['company_id', 'diagnostic_id'].includes(event.target.dataset.filter) && ['diagnostico', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) load();
         else render();
     });
     globalSearch.addEventListener('input', () => { ctx.state.search = globalSearch.value; ctx.state.page = 1; if (!page.hasAttribute('aria-busy')) render(); });

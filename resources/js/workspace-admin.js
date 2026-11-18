@@ -19,7 +19,6 @@ const diagnosticFilters = (ctx) => scopeBar(ctx, f(ctx, 'diagnostic_id', 'Últim
 
 export function renderAdministration(ctx) {
     switch (ctx.screen) {
-        case 'dashboard': return dashboard(ctx);
         case 'tablero-operativo': case 'tablero-misional': case 'tablero-estrategico': return renderAxisDashboard(ctx);
         case 'colaboradores': return collaborators(ctx);
         case 'habilidades': return skills(ctx);
@@ -28,7 +27,6 @@ export function renderAdministration(ctx) {
         case 'evaluaciones': return evaluations(ctx);
         case 'planes': return plans(ctx);
         case 'diagnostico': return diagnostics(ctx);
-        case 'mapa-calor': return diagnosticFilters(ctx) + heatmap(ctx);
         case 'brechas': return gaps(ctx);
         case 'recomendaciones': return recommendations(ctx);
         case 'seguimiento': return tracking(ctx);
@@ -40,21 +38,6 @@ export function renderAdministration(ctx) {
     }
 }
 
-function dashboard(ctx) {
-    const employees = companyRecords(ctx, 'employees');
-    const evaluations = companyRecords(ctx, 'evaluations');
-    const completed = evaluations.filter((ev) => ev.status === 'completed');
-    const plans = companyRecords(ctx, 'improvement-plans');
-    const evaluated = new Set(completed.map((ev) => ev.user_id)).size;
-    const mean = percent(average(completed.filter((ev) => ev.result?.total_score != null).map((ev) => ev.result.total_score)));
-    const critical = (ctx.data.diagnostic?.gaps ?? []).filter((gap) => gap.priority === 'critical').length;
-    const axes = axisSeries(ctx);
-    return `<div class="flex flex-wrap items-center justify-between gap-3"><p class="text-sm text-slate-500">Vista general del estado de las habilidades blandas de la organización.</p>${companyFilter(ctx)}</div>`
-        + kpis([['Colaboradores', employees.length, 'users', 'slate'], ['Evaluados', evaluated, 'clipboard', 'green', employees.length ? `${Math.round(evaluated / employees.length * 100)}% del total` : ''], ['Resultado promedio', mean == null ? '—' : `${mean}%`, 'chart', 'blue', 'Escala de 0 a 100'], ['Brechas críticas', ctx.data.diagnostic ? critical : '—', 'warning', 'red'], ['Planes activos', plans.filter((p) => ['pending', 'in_progress'].includes(p.status)).length, 'target', 'amber'], ['Planes completados', plans.filter((p) => p.status === 'completed').length, 'target', 'green']])
-        + `<div class="grid gap-5 lg:grid-cols-3"><div class="lg:col-span-2">${panel('Resultados por eje organizacional', bars(axes, true) + `<div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">${categorySeries(ctx).map((c) => `<div class="text-center"><p class="mb-2 text-xs text-slate-500">${e(c.name)}</p>${progress(c.value)}</div>`).join('')}</div>`, link('Ver diagnóstico', 'diagnostico'))}</div>${panel('Estado de colaboradores', distribution(ctx, employees, evaluations))}</div>`
-        + axisCards(ctx, axes)
-        + panel('Evaluaciones recientes', completed.length ? `<div class="divide-y divide-slate-50">${completed.slice(0, 5).map((ev) => `<div class="flex flex-wrap items-center gap-4 py-3"><div class="min-w-0 flex-1">${identity(ev.user)}</div>${statusBadge(ev.status)}<strong class="text-sm">${percent(ev.result?.total_score) ?? '—'}%</strong>${link('Ver perfil', 'perfil-colaborador', ev.user_id)}</div>`).join('')}</div>` : empty('No hay evaluaciones completadas'), link('Ver todas', 'evaluaciones'));
-}
 
 function distribution(ctx, employees, evaluations) {
     if (!employees.length) return empty('No hay colaboradores registrados');
@@ -118,7 +101,7 @@ function plans(ctx) {
 function diagnostics(ctx) {
     return diagnosticFilters(ctx) + `<div class="flex justify-end">${button('+ Generar diagnóstico', 'create', '', true)}</div>` + axisCards(ctx)
         + `<div class="grid gap-5 lg:grid-cols-2">${panel('Resultado por categoría', bars(categorySeries(ctx), true))}${panel('Comparación por eje', bars(axisSeries(ctx)))}</div>`
-        + panel('Matriz de diagnóstico', heatmap(ctx), link('Ver mapa de calor completo →', 'mapa-calor'));
+        + panel('Matriz de diagnóstico', heatmap(ctx));
 }
 
 function heatmap(ctx) {

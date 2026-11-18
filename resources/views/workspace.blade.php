@@ -9,7 +9,6 @@
         ['perfil', 'Mi perfil', 'web.profile', 'user'],
         ['notificaciones', 'Notificaciones', 'web.notifications', 'bell'],
     ] : [
-        ['dashboard', 'Dashboard', 'workspace', 'home'],
         ['tablero-operativo', 'Tablero operativo', 'web.tablero-operativo', 'chart'],
         ['tablero-misional', 'Tablero misional', 'web.tablero-misional', 'chart'],
         ['tablero-estrategico', 'Tablero estratégico', 'web.tablero-estrategico', 'chart'],
@@ -19,7 +18,6 @@
         ['preguntas', 'Banco de preguntas', 'web.preguntas', 'help'],
         ['cargos', 'Cargos', 'web.cargos', 'briefcase'],
         ['diagnostico', 'Diagnóstico organizacional', 'diagnostics.organizational', 'chart'],
-        ['mapa-calor', 'Mapa de calor', 'web.mapa-calor', 'map'],
         ['brechas', 'Brechas', 'web.brechas', 'warning'],
         ['recomendaciones', 'Recomendaciones IA', 'web.recomendaciones', 'sparkles'],
         ['planes', 'Planes de mejoramiento', 'web.planes', 'target'],
@@ -30,7 +28,7 @@
     if (auth()->user()->isSuperadmin()) {
         $navigation[] = ['empresas', 'Empresas', 'web.empresas', 'building'];
     }
-    $initialScreen = $collaborator && $screen === 'dashboard' ? 'inicio' : $screen;
+    $initialScreen = $screen;
 @endphp
 <!DOCTYPE html>
 <html lang="es" class="h-full">
@@ -75,7 +73,7 @@
         <main class="min-h-dvh lg:pl-60">
             <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-100 bg-white px-4 shadow-sm sm:px-6">
                 <button id="sidebar-open" class="grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 lg:hidden" aria-expanded="false" aria-controls="admin-sidebar" aria-label="Abrir menú"><span data-icon="menu" class="size-4"></span></button>
-                <div class="min-w-0 flex-1"><nav class="mb-0.5 truncate text-xs text-slate-500" aria-label="Ruta"><span>{{ $collaborator ? 'Inicio' : 'Dashboard' }}</span><span class="px-1">›</span><span id="workspace-breadcrumb" class="font-medium text-slate-600"></span></nav><h1 id="workspace-title" class="truncate text-lg font-bold">Cargando…</h1></div>
+                <div class="min-w-0 flex-1"><nav class="mb-0.5 truncate text-xs text-slate-500" aria-label="Ruta"><span>{{ $collaborator ? 'Inicio' : 'Tableros' }}</span><span class="px-1">›</span><span id="workspace-breadcrumb" class="font-medium text-slate-600"></span></nav><h1 id="workspace-title" class="truncate text-lg font-bold">Cargando…</h1></div>
                 <label class="relative hidden md:block"><span class="sr-only">Buscar en esta pantalla</span><span data-icon="search" class="absolute left-3 top-2.5 size-4 text-slate-400"></span><input id="workspace-search" type="search" placeholder="Buscar…" class="w-48 rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm"></label>
                 <a href="{{ route('web.notifications') }}" data-screen-link="notificaciones" class="relative grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500" aria-label="Notificaciones"><span data-icon="bell" class="size-4"></span><span id="unread-count" hidden class="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"></span></a>
                 <a href="{{ route('web.profile') }}" data-screen-link="perfil" data-user-initials class="grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white" aria-label="Mi perfil">{{ mb_substr(auth()->user()->name, 0, 1) }}</a>

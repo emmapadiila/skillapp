@@ -87,15 +87,15 @@ test('workspace screens, responsive layouts and persisted form payloads work in 
         const shot = async (name) => { const result = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }); await writeFile(join(fixturePath, name + '.png'), Buffer.from(result.data, 'base64')); };
         await call('Runtime.enable'); await call('Page.enable');
         await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
-        await call('Page.navigate', { url: origin + '/dashboard' }); await ready();
-        assert.equal(await evaluate(`document.querySelector('#workspace-title').textContent`), 'Diagnóstico Organizacional');
-        assert.ok(await evaluate(`document.querySelector('#workspace-page').innerText.includes('75%')`));
+        await call('Page.navigate', { url: origin + '/tablero-estrategico' }); await ready();
+        assert.equal(await evaluate(`document.querySelector('#workspace-title').textContent`), 'Tablero del eje estratégico');
+        assert.ok(await evaluate(`document.querySelector('#workspace-page').innerText.includes('Mapa de calor')`));
         await shot('admin-dashboard-desktop');
-        const adminScreens = ['colaboradores', 'evaluaciones', 'habilidades', 'preguntas', 'cargos', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'planes', 'seguimiento', 'reportes', 'areas'];
+        const adminScreens = ['tablero-operativo', 'tablero-misional', 'colaboradores', 'evaluaciones', 'habilidades', 'preguntas', 'cargos', 'diagnostico', 'brechas', 'recomendaciones', 'planes', 'seguimiento', 'reportes', 'areas'];
         for (const screen of adminScreens) {
             await click(`[data-screen-link="${screen}"]`); await ready();
             assert.ok(!(await evaluate(`document.querySelector('#workspace-page').innerText`)).includes('No pudimos cargar'), screen);
-            if (['colaboradores', 'mapa-calor', 'planes'].includes(screen)) await shot(screen + '-desktop');
+            if (['colaboradores', 'tablero-operativo', 'planes'].includes(screen)) await shot(screen + '-desktop');
         }
         await click('[data-screen-link="colaboradores"]'); await ready();
         await click(`[data-navigate="perfil-colaborador"][data-id="${fixtures.admin.ids.employee}"]`); await ready();
@@ -115,7 +115,7 @@ test('workspace screens, responsive layouts and persisted form payloads work in 
         const questionWrite = writes.find((w) => w.key === 'questions' && w.method === 'POST');
         assert.equal(questionWrite.payload.type, 'self_report'); assert.deepEqual(questionWrite.payload.options, []);
         await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-        for (const screen of ['dashboard', ...adminScreens]) {
+        for (const screen of ['tablero-estrategico', ...adminScreens]) {
             await click(`[data-screen-link="${screen}"]`); await ready();
             assert.ok(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Mobile overflow: ' + screen);
             if (screen === 'colaboradores') await shot('collaborators-mobile');

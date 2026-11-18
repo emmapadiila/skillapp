@@ -34,6 +34,8 @@ class BrowserWorkspaceTest extends TestCase
         config()->set('security.rate_limits.api', 1000);
         $company = Company::factory()->create();
         $axis = OrganizationalAxis::factory()->create(['code' => 'operational', 'name' => 'Operativo']);
+        OrganizationalAxis::factory()->create(['code' => 'mission', 'name' => 'Misional']);
+        OrganizationalAxis::factory()->create(['code' => 'strategic', 'name' => 'Estratégico']);
         $category = SkillCategory::factory()->create(['name' => 'Comunicativas']);
         $area = Area::factory()->for($company)->create();
         $skill = Skill::factory()->for($company)->create(['skill_category_id' => $category->id, 'name' => 'Comunicación de prueba']);
@@ -61,10 +63,10 @@ class BrowserWorkspaceTest extends TestCase
         foreach (['admin' => $admin, 'collaborator' => $employee] as $role => $user) {
             $currentIdentity = ['id' => $user->supabase_user_id, 'email' => $user->email];
             $this->actingAs($user)->withSession(['supabase.access_token' => 'browser-test-token']);
-            $html = $this->get(route($role === 'admin' ? 'workspace' : 'personal.workspace'))->assertOk()->getContent();
+            $html = $this->get(route($role === 'admin' ? 'web.tablero-estrategico' : 'personal.workspace'))->assertOk()->getContent();
             $resources = ['me', 'catalogs', 'assessments', 'evaluations', 'improvement-plans', 'notifications', 'evaluations/'.$evaluation->id, 'evaluations/'.$pending->id, 'improvement-plans/'.$plan->id];
             if ($role === 'admin') {
-                $resources = array_merge($resources, ['employees', 'positions', 'areas', 'skills', 'questions', 'diagnostics', 'diagnostics/'.$diagnostic->id, 'employees/'.$employee->id, 'skills/'.$skill->id, 'questions/'.$question->id, 'positions/'.$position->id, 'areas/'.$area->id]);
+                $resources = array_merge($resources, ['dashboards/axes', 'employees', 'positions', 'areas', 'skills', 'questions', 'diagnostics', 'diagnostics/'.$diagnostic->id, 'employees/'.$employee->id, 'skills/'.$skill->id, 'questions/'.$question->id, 'positions/'.$position->id, 'areas/'.$area->id]);
             }
             $responses = [];
             foreach ($resources as $resource) {

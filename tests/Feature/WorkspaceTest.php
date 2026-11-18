@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class WorkspaceTest extends TestCase
@@ -30,6 +31,7 @@ class WorkspaceTest extends TestCase
             ->assertSee('content="test-access"', false);
         $this->get(route('collaborators.index'))->assertForbidden();
         $this->get(route('web.empresas'))->assertForbidden();
+        $this->assertFalse(Route::has('web.mapa-calor'));
     }
 
     public function test_human_resources_can_open_all_management_screens_except_companies(): void
@@ -37,7 +39,8 @@ class WorkspaceTest extends TestCase
         $user = User::factory()->create(['role' => UserRole::HumanResources]);
 
         $this->actingAs($user);
-        foreach (['workspace', 'collaborators.index', 'diagnostics.organizational', 'web.evaluaciones', 'web.habilidades', 'web.preguntas', 'web.cargos', 'web.mapa-calor', 'web.brechas', 'web.recomendaciones', 'web.planes', 'web.seguimiento', 'web.reportes', 'web.areas'] as $route) {
+        $this->get(route('workspace'))->assertRedirect(route('web.tablero-estrategico'));
+        foreach (['web.tablero-operativo', 'web.tablero-misional', 'web.tablero-estrategico', 'collaborators.index', 'diagnostics.organizational', 'web.evaluaciones', 'web.habilidades', 'web.preguntas', 'web.cargos', 'web.brechas', 'web.recomendaciones', 'web.planes', 'web.seguimiento', 'web.reportes', 'web.areas'] as $route) {
             $this->get(route($route))->assertOk()->assertViewIs('workspace');
         }
         $this->get(route('web.empresas'))->assertForbidden();
