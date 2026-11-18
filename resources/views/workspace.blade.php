@@ -10,6 +10,9 @@
         ['notificaciones', 'Notificaciones', 'web.notifications', 'bell'],
     ] : [
         ['dashboard', 'Dashboard', 'workspace', 'home'],
+        ['tablero-operativo', 'Tablero operativo', 'web.tablero-operativo', 'chart'],
+        ['tablero-misional', 'Tablero misional', 'web.tablero-misional', 'chart'],
+        ['tablero-estrategico', 'Tablero estratégico', 'web.tablero-estrategico', 'chart'],
         ['colaboradores', 'Colaboradores', 'collaborators.index', 'users'],
         ['evaluaciones', 'Evaluaciones', 'web.evaluaciones', 'clipboard'],
         ['habilidades', 'Habilidades', 'web.habilidades', 'brain'],

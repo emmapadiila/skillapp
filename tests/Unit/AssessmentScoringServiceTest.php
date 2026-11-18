@@ -57,6 +57,28 @@ class AssessmentScoringServiceTest extends TestCase
         $this->assertSame(50.0, $scores['total']);
     }
 
+    public function test_the_explanation_says_what_raised_and_lowered_a_skill(): void
+    {
+        $service = new AssessmentScoringService;
+
+        $high = $service->explain([['type' => 'likert', 'score' => 4], ['type' => 'likert', 'score' => 5], ['type' => 'situational', 'score' => 5]]);
+        $this->assertSame([
+            'En las afirmaciones te describiste con frecuencia de esta forma (promedio 4,5 de 5).',
+            'En la situación planteada elegiste la respuesta más efectiva.',
+        ], $high['strengths']);
+        $this->assertSame([], $high['opportunities']);
+
+        $low = $service->explain([['type' => 'likert', 'score' => 2], ['type' => 'likert', 'score' => 3], ['type' => 'situational', 'score' => 1]]);
+        $this->assertSame([], $low['strengths']);
+        $this->assertSame([
+            'En las afirmaciones te ubicaste por debajo del punto medio (promedio 2,5 de 5).',
+            'En la situación elegiste una respuesta poco efectiva para lo que pedía el caso.',
+        ], $low['opportunities']);
+
+        $middle = $service->explain([['type' => 'likert', 'score' => 3], ['type' => 'situational', 'score' => 3]]);
+        $this->assertCount(2, $middle['opportunities']);
+    }
+
     #[DataProvider('levelBoundaries')]
     public function test_levels_follow_the_agreed_thresholds(float $score, ResultLevel $expected): void
     {

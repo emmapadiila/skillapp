@@ -1,3 +1,4 @@
+import { renderAxisDashboard } from './workspace-dashboards';
 import { e, label, date, average, percent, color, identity, badge, statusBadge, axisBadge, button, link, empty, panel, progress, kpis, bars, lineChart, table, filter, enums, toolbar } from './workspace-ui';
 
 export const companyRecords = (ctx, resource) => ctx.records(resource).filter((r) => !ctx.state.filters.company_id || String(r.company_id) === String(ctx.state.filters.company_id));
@@ -19,6 +20,7 @@ const diagnosticFilters = (ctx) => scopeBar(ctx, f(ctx, 'diagnostic_id', 'Últim
 export function renderAdministration(ctx) {
     switch (ctx.screen) {
         case 'dashboard': return dashboard(ctx);
+        case 'tablero-operativo': case 'tablero-misional': case 'tablero-estrategico': return renderAxisDashboard(ctx);
         case 'colaboradores': return collaborators(ctx);
         case 'habilidades': return skills(ctx);
         case 'preguntas': return questions(ctx);

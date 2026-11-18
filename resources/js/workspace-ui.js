@@ -16,7 +16,7 @@ export const button = (text, action, id = '', primary = false) => `<button type=
 export const link = (text, screen, id = '', primary = false) => `<button type="button" class="${primary ? 'ws-primary' : 'ws-button'}" data-navigate="${e(screen)}" data-id="${e(id)}">${e(text)}</button>`;
 export const empty = (title = 'No hay registros para mostrar', description = 'Los registros aparecerán aquí cuando estén disponibles.') => `<div class="rounded-xl border border-dashed border-slate-200 bg-white px-5 py-12 text-center"><h2 class="text-base font-bold">${e(title)}</h2><p class="mt-2 text-sm text-slate-500">${e(description)}</p></div>`;
 export const panel = (title, content, action = '') => `<article class="ws-panel"><div class="mb-4 flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">${e(title)}</h2>${action}</div>${content}</article>`;
-export const progress = (value, tone = 'var(--color-brand-600)') => `<div class="flex min-w-24 items-center gap-2"><progress class="ws-progress" style="--progress-color:${tone}" value="${Math.min(100, Math.max(0, Number(value) || 0))}" max="100" aria-label="Progreso"></progress><strong class="text-xs tabular-nums">${value == null ? '—' : `${Math.round(Number(value))}%`}</strong></div>`;
+export const progress = (value, tone = 'var(--color-brand-600)', showValue = true) => `<div class="flex min-w-24 items-center gap-2"><progress class="ws-progress" style="--progress-color:${tone}" value="${Math.min(100, Math.max(0, Number(value) || 0))}" max="100" aria-label="${showValue ? 'Progreso' : `${value == null ? 'Sin datos' : Math.round(Number(value))} de 100`}"></progress>${showValue ? `<strong class="whitespace-nowrap text-xs tabular-nums">${value == null ? '—' : `${Math.round(Number(value))}%`}</strong>` : ''}</div>`;
 export const kpis = (items) => `<div class="grid grid-cols-2 gap-4 ${items.length > 4 ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-4'}">${items.map(([title, value, icon = 'chart', tone = 'blue', hint = '']) => `<article class="ws-panel"><div class="mb-3 flex items-start justify-between gap-2"><h2 class="text-xs font-medium text-slate-500">${e(title)}</h2><span class="ws-badge ws-badge--${tone} rounded-lg p-2">${svg(icon)}</span></div><p class="text-2xl font-bold tabular-nums">${e(value ?? '—')}</p>${hint ? `<p class="mt-1 text-xs text-slate-500">${e(hint)}</p>` : ''}</article>`).join('')}</div>`;
 
 const paths = {
@@ -45,7 +45,7 @@ export function icons() { document.querySelectorAll('[data-icon]').forEach((el) 
 
 export function bars(items, vertical = false) {
     if (!items.length || items.every((i) => i.value == null)) return empty('Todavía no hay resultados');
-    if (!vertical) return `<div class="space-y-4">${items.map((item) => `<div><div class="mb-2 flex justify-between gap-3 text-xs"><span>${e(item.name)}</span><strong>${item.value == null ? '—' : `${Math.round(item.value)}%`}</strong></div>${progress(item.value, item.color ?? color(item.value))}</div>`).join('')}</div>`;
+    if (!vertical) return `<div class="space-y-4">${items.map((item) => `<div><div class="mb-2 flex justify-between gap-3 text-xs"><span>${e(item.name)}</span><strong class="tabular-nums">${item.value == null ? 'Sin datos' : Math.round(item.value)}</strong></div>${progress(item.value, item.color ?? color(item.value), false)}</div>`).join('')}</div>`;
     return `<div class="ws-chart" role="img" aria-label="Resultados por eje de 0 a 100 por ciento"><div class="ws-chart-scale"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div class="ws-chart-bars">${items.map((item) => `<div class="ws-chart-column"><strong>${item.value == null ? '—' : `${Math.round(item.value)}%`}</strong><div style="height:${Math.max(0, Math.min(100, item.value ?? 0))}%;background:${item.color ?? 'var(--color-brand-500)'}" title="${e(item.name)}: ${item.value == null ? 'Sin datos' : `${Math.round(item.value)}%`}"></div><span>${e(item.name)}</span></div>`).join('')}</div></div>`;
 }
 
@@ -70,3 +70,29 @@ export const filter = (name, title, records, value = '') => `<label><span class=
 export const enums = (map) => Object.entries(map).map(([id, name]) => ({ id, name }));
 export const toolbar = (filters, add = '', summary = '') => `<div class="flex flex-wrap items-center gap-2">${filters}${add ? `<div class="ml-auto">${add}</div>` : ''}</div>${summary ? `<p class="mt-3 text-xs text-slate-500">${e(summary)}</p>` : ''}`;
 export const formErrors = (error) => `<p class="text-sm font-medium text-red-700">${e(error.message)}</p>${Object.entries(error.fields ?? {}).map(([name, messages]) => `<p data-error-for="${e(name)}" class="mt-1 text-xs text-red-600">${e(messages.join(' '))}</p>`).join('')}`;
+
+/**
+ * Radar de 0 a 100. Los vértices se numeran y los nombres van en la leyenda para que los textos
+ * largos no se encimen en pantallas de 360 px.
+ */
+export function radar(items, label = 'Resultado por habilidad') {
+    const points = items.filter((item) => item.value != null);
+    if (points.length < 3) return bars(items);
+    const size = 300; const center = size / 2; const radius = 105;
+    const at = (index, value) => {
+        const angle = (Math.PI * 2 * index) / points.length - Math.PI / 2;
+        return [center + Math.cos(angle) * radius * value / 100, center + Math.sin(angle) * radius * value / 100];
+    };
+    const ring = (value) => points.map((_, i) => at(i, value).join(',')).join(' ');
+    const shape = points.map((p, i) => at(i, p.value).join(',')).join(' ');
+    const description = points.map((p) => `${p.name}: ${Math.round(p.value)}`).join('; ');
+    return `<div class="grid gap-4"><svg viewBox="0 0 ${size} ${size}" class="mx-auto w-full max-w-[260px]" role="img" aria-label="${e(label)}. ${e(description)}">`
+        + [25, 50, 75, 100].map((v) => `<polygon points="${ring(v)}" fill="none" stroke="var(--color-slate-200)"/>`).join('')
+        + points.map((_, i) => `<line x1="${center}" y1="${center}" x2="${at(i, 100)[0]}" y2="${at(i, 100)[1]}" stroke="var(--color-slate-200)"/>`).join('')
+        + `<polygon points="${shape}" fill="var(--color-brand-500)" fill-opacity="0.18" stroke="var(--color-brand-600)" stroke-width="2"/>`
+        + points.map((p, i) => { const [x, y] = at(i, p.value); const [lx, ly] = at(i, 118); return `<circle cx="${x}" cy="${y}" r="4" fill="var(--color-brand-600)"/><text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="600" fill="var(--color-slate-700)">${i + 1}</text>`; }).join('')
+        + `</svg><ol class="space-y-2 text-sm" aria-hidden="true">${points.map((p, i) => `<li class="flex items-start gap-2"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold">${i + 1}</span><span class="min-w-0 flex-1">${e(p.name)}</span><strong class="tabular-nums">${Math.round(p.value)}</strong></li>`).join('')}</ol></div>`;
+}
+
+/** Badge de nivel con su nombre (no solo color). */
+export const levelBadge = (level) => statusBadge(level);

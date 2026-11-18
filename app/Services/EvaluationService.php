@@ -224,6 +224,7 @@ class EvaluationService
             $items = $responses->map(fn (EvaluationResponse $response): array => [
                 'skill_id' => $response->evaluationQuestion->question->skill_id,
                 'category_id' => $response->evaluationQuestion->question->skill->skill_category_id,
+                'type' => $response->evaluationQuestion->question->type === QuestionType::SelfReport ? 'likert' : 'situational',
                 'score' => (float) $response->score,
             ]);
             $weights = $evaluation->assessment?->skills
@@ -251,7 +252,8 @@ class EvaluationService
             ]);
 
             foreach ($scores['skills'] as $skillId => $score) {
-                SkillResult::query()->create(['evaluation_result_id' => $result->id, 'skill_id' => $skillId, 'score' => $score, 'level' => ResultLevel::fromScore($score)->value, 'strengths' => [], 'opportunities' => []]);
+                $explanation = $this->scoring->explain($items->where('skill_id', $skillId));
+                SkillResult::query()->create(['evaluation_result_id' => $result->id, 'skill_id' => $skillId, 'score' => $score, 'level' => ResultLevel::fromScore($score)->value, ...$explanation]);
             }
 
             foreach ($scores['categories'] as $categoryId => $score) {

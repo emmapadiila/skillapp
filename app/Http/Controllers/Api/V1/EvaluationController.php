@@ -63,7 +63,7 @@ class EvaluationController extends Controller
         $evaluation->load([
             'user:id,name,email', 'questions.question.skill.category',
             'questions.question.options', 'responses', 'result.skillResults', 'result.categoryResults',
-            'assessment:id,code,name,description,instructions,axis_description,organizational_axis_id',
+            'assessment:id,code,name,description,instructions,axis_description,organizational_axis_id', 'assessment.skills:id,name,skill_category_id',
         ]);
 
         if ($request->user()->role === UserRole::Collaborator) {

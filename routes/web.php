@@ -16,7 +16,7 @@ Route::middleware('throttle:web')->group(function (): void {
         Route::middleware('role:superadmin,human_resources')->group(function (): void {
             Route::view('/diagnostico-organizacional', 'workspace', ['screen' => 'diagnostico'])->name('diagnostics.organizational');
             Route::view('/colaboradores', 'workspace', ['screen' => 'colaboradores'])->name('collaborators.index');
-            foreach (['evaluaciones', 'habilidades', 'preguntas', 'cargos', 'mapa-calor', 'brechas', 'recomendaciones', 'planes', 'seguimiento', 'reportes', 'areas'] as $screen) {
+            foreach (['tablero-operativo', 'tablero-misional', 'tablero-estrategico', 'evaluaciones', 'habilidades', 'preguntas', 'cargos', 'mapa-calor', 'brechas', 'recomendaciones', 'planes', 'seguimiento', 'reportes', 'areas'] as $screen) {
                 Route::view('/'.$screen, 'workspace', ['screen' => $screen])->name('web.'.$screen);
             }
             Route::view('/empresas', 'workspace', ['screen' => 'empresas'])->middleware('role:superadmin')->name('web.empresas');

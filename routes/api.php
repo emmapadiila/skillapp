@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AssessmentController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DiagnosticController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\EvaluationController;
@@ -56,6 +57,9 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('improvement-plans', ImprovementPlanController::class)
             ->parameters(['improvement-plans' => 'improvementPlan']);
         Route::post('improvement-plans/{improvementPlan}/activities/{activity}/complete', [ImprovementPlanController::class, 'completeActivity']);
+
+        Route::get('dashboards/axes', [DashboardController::class, 'axes'])
+            ->middleware('role:superadmin,human_resources');
 
         Route::apiResource('diagnostics', DiagnosticController::class)->only(['index', 'store', 'show'])
             ->middleware('role:superadmin,human_resources');

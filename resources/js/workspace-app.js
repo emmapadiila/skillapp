@@ -3,13 +3,15 @@ import { e, icons, empty, button, formErrors, initials } from './workspace-ui';
 import { renderAdministration } from './workspace-admin';
 import { renderPersonal } from './workspace-personal';
 import { showEvaluation } from './workspace-assessment';
+import { DASHBOARD_SCREENS, dashboardQuery } from './workspace-dashboards';
 import { openRecordForm, recordAction } from './workspace-forms';
 
 const root = document.querySelector('[data-workspace]');
-const titles = { dashboard: 'Diagnóstico Organizacional', inicio: 'Inicio', colaboradores: 'Colaboradores', evaluaciones: 'Evaluaciones', habilidades: 'Catálogo de habilidades', preguntas: 'Banco de preguntas', cargos: 'Cargos', diagnostico: 'Diagnóstico organizacional', 'mapa-calor': 'Mapa de diagnóstico', brechas: 'Brechas organizacionales', recomendaciones: 'Recomendaciones inteligentes', planes: 'Planes de mejoramiento', seguimiento: 'Seguimiento', reportes: 'Reportes', evaluacion: 'Mi evaluación', resultados: 'Mis resultados', plan: 'Mi plan de mejoramiento', progreso: 'Mi progreso', perfil: 'Mi perfil', notificaciones: 'Notificaciones', 'perfil-colaborador': 'Perfil del colaborador', areas: 'Áreas', empresas: 'Empresas' };
+const titles = { 'tablero-operativo': 'Tablero del eje operativo', 'tablero-misional': 'Tablero del eje misional', 'tablero-estrategico': 'Tablero del eje estratégico', dashboard: 'Diagnóstico Organizacional', inicio: 'Inicio', colaboradores: 'Colaboradores', evaluaciones: 'Evaluaciones', habilidades: 'Catálogo de habilidades', preguntas: 'Banco de preguntas', cargos: 'Cargos', diagnostico: 'Diagnóstico organizacional', 'mapa-calor': 'Mapa de diagnóstico', brechas: 'Brechas organizacionales', recomendaciones: 'Recomendaciones inteligentes', planes: 'Planes de mejoramiento', seguimiento: 'Seguimiento', reportes: 'Reportes', evaluacion: 'Mi evaluación', resultados: 'Mis resultados', plan: 'Mi plan de mejoramiento', progreso: 'Mi progreso', perfil: 'Mi perfil', notificaciones: 'Notificaciones', 'perfil-colaborador': 'Perfil del colaborador', areas: 'Áreas', empresas: 'Empresas' };
 const dependencies = {
     dashboard: ['employees', 'evaluations', 'improvement-plans', 'diagnostics', 'positions', 'skills'],
     inicio: ['evaluations', 'improvement-plans'],
+    'tablero-operativo': ['areas', 'positions'], 'tablero-misional': ['areas', 'positions'], 'tablero-estrategico': ['areas', 'positions'],
     colaboradores: ['employees', 'positions', 'evaluations', 'areas'],
     evaluaciones: ['evaluations', 'employees', 'questions', 'assessments'],
     habilidades: ['skills'], preguntas: ['questions', 'skills'], cargos: ['positions', 'areas', 'skills'],
@@ -110,6 +112,10 @@ if (root) {
                 if (current !== generation) return;
                 ctx.data[resource] = data;
             }
+            if (DASHBOARD_SCREENS[ctx.screen]) {
+                const query = dashboardQuery(ctx);
+                ctx.data.axisDashboard = await getData(`dashboards/axes${query ? `?${query}` : ''}`);
+            }
             if (['dashboard', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) {
                 const companyId = ctx.state.filters.company_id || ctx.user.company_id;
                 const snapshots = ctx.records('diagnostics').filter((d) => !companyId || String(d.company_id) === String(companyId));
@@ -156,6 +162,7 @@ if (root) {
         if (!buttonEl) return;
         const { action, id } = buttonEl.dataset;
         if (action === 'reload') { load(true); return; }
+        if (action === 'dashboard-clear') { ctx.state.filters = {}; load(); return; }
         buttonEl.disabled = true;
         try {
             if (action === 'create' || action === 'edit') await openRecordForm(ctx, id || null);
@@ -170,7 +177,10 @@ if (root) {
     root.addEventListener('change', (event) => {
         if (!event.target.matches('[data-filter]')) return;
         ctx.state.filters[event.target.dataset.filter] = event.target.value; ctx.state.page = 1;
-        if (['company_id', 'diagnostic_id'].includes(event.target.dataset.filter) && ['dashboard', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) load();
+        if (DASHBOARD_SCREENS[ctx.screen]) {
+            if (event.target.dataset.filter === 'area_id') delete ctx.state.filters.position_id;
+            load();
+        } else if (['company_id', 'diagnostic_id'].includes(event.target.dataset.filter) && ['dashboard', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'reportes'].includes(ctx.screen)) load();
         else render();
     });
     globalSearch.addEventListener('input', () => { ctx.state.search = globalSearch.value; ctx.state.page = 1; if (!page.hasAttribute('aria-busy')) render(); });

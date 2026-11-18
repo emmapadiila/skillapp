@@ -67,4 +67,48 @@ class AssessmentScoringService
 
         return $totalWeight > 0 ? $weighted / $totalWeight : 0.0;
     }
+
+    /**
+     * Explica en lenguaje sencillo qué subió o bajó el puntaje de una habilidad.
+     *
+     * @param  iterable<array{type: string, score: float}>  $items  Ítems de una sola habilidad.
+     * @return array{strengths: list<string>, opportunities: list<string>}
+     */
+    public function explain(iterable $items): array
+    {
+        $likert = [];
+        $situational = [];
+
+        foreach ($items as $item) {
+            if ($item['type'] === 'likert') {
+                $likert[] = $item['score'];
+            } else {
+                $situational[] = $item['score'];
+            }
+        }
+
+        $strengths = [];
+        $opportunities = [];
+
+        if ($likert !== []) {
+            $average = array_sum($likert) / count($likert);
+            $formatted = number_format($average, 1, ',', '');
+
+            match (true) {
+                $average >= 4 => $strengths[] = "En las afirmaciones te describiste con frecuencia de esta forma (promedio {$formatted} de 5).",
+                $average >= 3 => $opportunities[] = "En las afirmaciones te ubicaste en un punto intermedio (promedio {$formatted} de 5).",
+                default => $opportunities[] = "En las afirmaciones te ubicaste por debajo del punto medio (promedio {$formatted} de 5).",
+            };
+        }
+
+        foreach ($situational as $score) {
+            match (true) {
+                $score >= 5 => $strengths[] = 'En la situación planteada elegiste la respuesta más efectiva.',
+                $score >= 3 => $opportunities[] = 'En la situación elegiste una respuesta aceptable, pero había una más efectiva.',
+                default => $opportunities[] = 'En la situación elegiste una respuesta poco efectiva para lo que pedía el caso.',
+            };
+        }
+
+        return ['strengths' => $strengths, 'opportunities' => $opportunities];
+    }
 }
