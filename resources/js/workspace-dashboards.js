@@ -48,7 +48,9 @@ function filters(ctx, axis) {
     const select = (key, title, records, value) => `<label class="ws-field"><span>${e(title)}</span><select data-filter="${key}">${options(records, value, 'Todas')}</select></label>`;
     const dateInput = (key, title, value) => `<label class="ws-field"><span>${e(title)}</span><input type="date" data-filter="${key}" value="${e(value)}"></label>`;
     const active = areaId || positionId || from || to;
-    return `<div role="group" class="ws-panel grid grid-cols-2 gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end" aria-label="Filtros del tablero">${select('area_id', 'Área', ctx.records('areas'), areaId)}${select('position_id', 'Cargo', positions, positionId)}${dateInput('from', 'Desde', from)}${dateInput('to', 'Hasta', to)}${active ? button('Limpiar filtros', 'dashboard-clear') : ''}</div>`;
+    // En el celular los filtros empiezan plegados (salvo que haya alguno activo) para que los datos queden a la vista.
+    const open = active || window.matchMedia('(min-width: 640px)').matches;
+    return `<details class="ws-panel" ${open ? 'open' : ''}><summary class="cursor-pointer font-semibold text-slate-900">Filtros${active ? ` (${[areaId, positionId, from, to].filter(Boolean).length} activos)` : ''}</summary><div role="group" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end" aria-label="Filtros del tablero">${select('area_id', 'Área', ctx.records('areas'), areaId)}${select('position_id', 'Cargo', positions, positionId)}${dateInput('from', 'Desde', from)}${dateInput('to', 'Hasta', to)}${active ? button('Limpiar filtros', 'dashboard-clear') : ''}</div></details>`;
 }
 
 function header(axis) {
@@ -76,7 +78,7 @@ function explanation(axis) {
     const measured = axis.skills.filter((s) => s.average != null).sort((a, b) => b.average - a.average);
     const list = (items) => items.map((s) => `${e(s.name)} (${score(s.average)})`).join(' y ');
     const top = measured.slice(0, 2); const bottom = measured.slice(-2).reverse().filter((s) => !top.includes(s));
-    return panel('Cómo leer este resultado', `<div class="space-y-2 text-sm leading-6 text-slate-700"><p>El promedio de ${axis.evaluated} ${axis.evaluated === 1 ? 'persona' : 'personas'} es <strong>${score(axis.average)}</strong>, nivel <strong>${e(label(axis.level))}</strong>.</p>${top.length ? `<p>Lo que más lo sostiene: ${list(top)}.</p>` : ''}${bottom.length ? `<p>Lo que más lo baja: ${list(bottom)}.</p>` : ''}<p>Cada habilidad es el promedio de sus preguntas llevado a 0–100. Las de peso alto cuentan 1,5 veces en el total.</p></div>`);
+    return panel('Cómo leer este resultado', `<div class="space-y-2 text-sm leading-6 text-slate-700"><p>El promedio de ${axis.evaluated} ${axis.evaluated === 1 ? 'persona' : 'personas'} es <strong>${score(axis.average)}</strong>, nivel <strong>${e(label(axis.level))}</strong>.</p>${top.length ? `<p>Lo que más lo sostiene: ${list(top)}.</p>` : ''}${bottom.length ? `<p>Lo que más lo baja: ${list(bottom)}.</p>` : ''}${axis.evaluated < 5 ? '<p class="font-medium text-warning-700">Con menos de 5 personas, toma este resultado como orientativo.</p>' : ''}<p>Cada habilidad es el promedio de sus preguntas llevado a 0–100. Las de peso alto cuentan 1,5 veces en el total.</p></div>`);
 }
 
 function people(ctx, axis) {

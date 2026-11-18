@@ -130,7 +130,7 @@ export async function showEvaluation(ctx, id) {
     const isLikert = (item) => item.question.type === 'self_report';
     const firstOfType = (type) => questions.findIndex((item) => item.question.type === type);
 
-    const status = (html, tone = 'text-slate-600') => { const el = isActive() && document.querySelector('#save-status'); if (el) { el.className = `min-h-6 text-sm ${tone}`; el.innerHTML = html; } };
+    const status = (html, tone = 'text-slate-600') => { const el = isActive() && document.querySelector('#save-status'); if (el) { el.className = `min-h-6 w-full text-sm ${tone}`; el.innerHTML = html; } };
 
     function save(item, value) {
         choices.set(item.id, value);
@@ -214,8 +214,7 @@ export async function showEvaluation(ctx, id) {
                 <details class="text-[0.9375rem] text-slate-700" ${index === firstOfType(q.type) ? 'open' : ''}><summary class="cursor-pointer font-medium text-brand-700">Cómo responder</summary><p class="mt-2 leading-6">${e(help)}</p></details>
                 ${choiceList}
             </fieldset>
-            <p id="save-status" role="status" class="min-h-6 text-sm text-slate-600">${initialStatus}</p>
-            <div class="ws-test-actions"><button type="button" id="evaluation-prev" class="ws-button" ${index === 0 ? 'disabled' : ''}>${svg('arrowLeft')}Anterior</button><button type="submit" class="ws-primary flex-1 sm:flex-none">${nextLabel}${reviewing ? '' : svg('arrowRight')}</button></div>
+            <div class="ws-test-actions"><p id="save-status" role="status" class="min-h-6 w-full text-sm text-slate-600">${initialStatus}</p><button type="button" id="evaluation-prev" class="ws-button" ${index === 0 ? 'disabled' : ''}>${svg('arrowLeft')}Anterior</button><button type="submit" class="ws-primary flex-1 sm:flex-none">${nextLabel}${reviewing ? '' : svg('arrowRight')}</button></div>
         </form>`)) return;
 
         const form = document.querySelector('#evaluation-response-form');

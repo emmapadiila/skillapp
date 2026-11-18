@@ -78,7 +78,7 @@ if (root) {
         ctx.pageRevision++;
         document.querySelector('#workspace-title').textContent = titles[ctx.screen];
         document.querySelector('#workspace-breadcrumb').textContent = titles[ctx.screen];
-        document.querySelector('[aria-label="Ruta"]').hidden = ['inicio', 'tablero-estrategico'].includes(ctx.screen);
+        document.querySelector('[aria-label="Ruta"]').hidden = ctx.screen === 'inicio';
         document.title = `${titles[ctx.screen]} | SkillDiagnóstico IA`;
         document.querySelectorAll('[data-screen-link]').forEach((el) => {
             if (el.dataset.screenLink === (ctx.screen === 'perfil-colaborador' ? 'colaboradores' : ctx.screen)) el.setAttribute('aria-current', 'page');

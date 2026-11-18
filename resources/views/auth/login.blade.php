@@ -18,7 +18,7 @@
                 <div class="mb-6 flex items-center justify-center gap-3 lg:hidden"><span class="grid size-10 place-items-center rounded-xl bg-brand-600 font-bold text-white">SD</span><span class="font-bold">SkillDiagnóstico IA</span></div>
                 <p class="-mt-3 mb-6 text-center text-sm text-slate-600 lg:hidden">Diagnóstico de habilidades blandas en tres ejes</p>
                 <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
-                    <header class="mb-8"><h2 id="login-heading" class="mb-1 text-2xl font-bold text-slate-900">Bienvenido</h2><p class="text-sm text-slate-500">Ingresa a tu cuenta para continuar</p></header>
+                    <header class="mb-8"><h2 id="login-heading" class="mb-1 text-2xl font-bold text-slate-900">Te damos la bienvenida</h2><p class="text-sm text-slate-500">Ingresa a tu cuenta para continuar</p></header>
                     @if (session('status'))<x-ui.alert tone="success" class="mb-4">{{ session('status') }}</x-ui.alert>@endif
                     <form method="POST" action="{{ route('login.store') }}" class="space-y-5" data-login-form>
                         @csrf
