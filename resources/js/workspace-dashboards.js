@@ -3,7 +3,7 @@ import { e, date, empty, panel, progress, color, kpis, bars, table, statusBadge,
 export const DASHBOARD_SCREENS = { 'tablero-operativo': 'operational', 'tablero-misional': 'mission', 'tablero-estrategico': 'strategic' };
 const AXIS_ORDER = ['operational', 'mission', 'strategic'];
 const LEVEL_CELL = { strength: 'bg-success-100 text-success-700', developing: 'bg-warning-100 text-warning-700', to_develop: 'bg-danger-100 text-danger-700' };
-const score = (value) => (value == null ? '—' : Math.round(Number(value)));
+const score = (value) => (value == null ? '—' : Math.floor(Number(value)));
 
 /** Query string de los filtros del tablero (área, cargo y periodo). */
 export function dashboardQuery(ctx) {
