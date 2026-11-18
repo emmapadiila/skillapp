@@ -171,11 +171,6 @@ class EvaluationService
             throw ValidationException::withMessages(['evaluation' => 'La evaluación ya fue completada y es inmutable.']);
         }
 
-        if ($evaluation->due_at->isPast()) {
-            $evaluation->update(['status' => EvaluationStatus::Expired]);
-            throw ValidationException::withMessages(['evaluation' => 'La evaluación está vencida.']);
-        }
-
         $evaluationQuestion = EvaluationQuestion::query()->with('question.options')
             ->whereKey($data['evaluation_question_id'])->where('evaluation_id', $evaluation->id)->first();
 
