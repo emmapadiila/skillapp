@@ -54,7 +54,11 @@ class EvaluationController extends Controller
         abort_unless($request->user()->role === UserRole::Collaborator, 403);
         $evaluation = $this->evaluations->startOwn($request->user());
 
-        return response()->json(['data' => $evaluation], $evaluation->wasRecentlyCreated ? 201 : 200);
+        // Solo el intento: las preguntas se piden aparte al detalle, que oculta los puntajes al colaborador.
+        return response()->json(
+            ['data' => $evaluation->only(['id', 'status', 'assessment_id', 'question_count', 'due_at'])],
+            $evaluation->wasRecentlyCreated ? 201 : 200,
+        );
     }
 
     public function show(Request $request, Evaluation $evaluation): JsonResponse

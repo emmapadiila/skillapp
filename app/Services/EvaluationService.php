@@ -136,26 +136,31 @@ class EvaluationService
             throw ValidationException::withMessages(['assessment' => 'Tu cargo no tiene una prueba disponible. Consulta con Talento Humano.']);
         }
 
-        $ownEvaluations = Evaluation::query()->where('user_id', $user->id)->where('assessment_id', $assessment->id);
+        // Bloquear la fila del colaborador hace idempotente el inicio: dos pestañas obtienen el mismo intento.
+        return DB::transaction(function () use ($user, $assessment): Evaluation {
+            User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-        $open = (clone $ownEvaluations)
-            ->whereIn('status', [EvaluationStatus::Pending, EvaluationStatus::InProgress])
-            ->where('due_at', '>', now())->latest('assigned_at')->first();
+            $ownEvaluations = Evaluation::query()->where('user_id', $user->id)->where('assessment_id', $assessment->id);
 
-        if ($open !== null) {
-            return $open;
-        }
+            $open = (clone $ownEvaluations)
+                ->whereIn('status', [EvaluationStatus::Pending, EvaluationStatus::InProgress])
+                ->where('due_at', '>', now())->latest('assigned_at')->first();
 
-        if ((clone $ownEvaluations)->where('status', EvaluationStatus::Completed)->exists()) {
-            throw ValidationException::withMessages(['assessment' => 'Ya completaste esta prueba. Talento Humano programará tu reevaluación.']);
-        }
+            if ($open !== null) {
+                return $open;
+            }
 
-        return $this->assign($user, [
-            'user_id' => $user->id,
-            'type' => EvaluationType::Initial->value,
-            'assessment_id' => $assessment->id,
-            'due_at' => now()->addDays(30),
-        ], notify: false);
+            if ((clone $ownEvaluations)->where('status', EvaluationStatus::Completed)->exists()) {
+                throw ValidationException::withMessages(['assessment' => 'Ya completaste esta prueba. Talento Humano programará tu reevaluación.']);
+            }
+
+            return $this->assign($user, [
+                'user_id' => $user->id,
+                'type' => EvaluationType::Initial->value,
+                'assessment_id' => $assessment->id,
+                'due_at' => now()->addDays(30),
+            ], notify: false);
+        });
     }
 
     public function respond(Evaluation $evaluation, User $user, array $data): EvaluationResponse
@@ -196,8 +201,15 @@ class EvaluationService
         }
 
         return DB::transaction(function () use ($evaluation, $evaluationQuestion, $user, $optionId, $likert, $score): EvaluationResponse {
-            if ($evaluation->status === EvaluationStatus::Pending) {
-                $evaluation->update(['status' => EvaluationStatus::InProgress, 'starts_at' => now()]);
+            // Mismo bloqueo de fila que complete(): un guardado no puede colarse después de calificar.
+            $locked = Evaluation::query()->lockForUpdate()->findOrFail($evaluation->id);
+
+            if ($locked->status === EvaluationStatus::Completed) {
+                throw ValidationException::withMessages(['evaluation' => 'La evaluación ya fue completada y es inmutable.']);
+            }
+
+            if ($locked->status === EvaluationStatus::Pending) {
+                $locked->update(['status' => EvaluationStatus::InProgress, 'starts_at' => now()]);
             }
 
             return EvaluationResponse::query()->updateOrCreate(

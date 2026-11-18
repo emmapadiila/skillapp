@@ -254,6 +254,35 @@ class SoftSkillsAssessmentTest extends TestCase
         $this->assertSame(1, Evaluation::where('user_id', $collaborator->id)->count());
     }
 
+    public function test_starting_an_assessment_never_returns_the_option_scores(): void
+    {
+        $company = Company::factory()->create();
+        $collaborator = $this->user($company, UserRole::Collaborator);
+        $assessment = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->firstOrFail();
+        $this->positionFor($collaborator, OrganizationalAxis::where('code', 'operational')->firstOrFail(), $assessment, requiredLevel: 3);
+
+        $started = $this->actingAsApi($collaborator)->postJson('/api/v1/evaluations/start')->assertCreated();
+
+        $this->assertSame(['id', 'status', 'assessment_id', 'question_count', 'due_at'], array_keys($started->json('data')));
+        $this->assertStringNotContainsString('"score"', $started->getContent());
+    }
+
+    public function test_an_answer_cannot_be_saved_after_the_evaluation_was_completed(): void
+    {
+        $company = Company::factory()->create();
+        $collaborator = $this->user($company, UserRole::Collaborator);
+        $assessment = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->firstOrFail();
+        $this->positionFor($collaborator, OrganizationalAxis::where('code', 'operational')->firstOrFail(), $assessment, requiredLevel: 3);
+        $evaluation = Evaluation::findOrFail($this->actingAsApi($collaborator)->postJson('/api/v1/evaluations/start')->json('data.id'));
+        $this->answerAll($collaborator, $evaluation, likert: 4, optionScore: 5);
+        $this->actingAsApi($collaborator)->postJson("/api/v1/evaluations/{$evaluation->id}/complete")->assertOk();
+
+        $this->actingAsApi($collaborator)->postJson("/api/v1/evaluations/{$evaluation->id}/responses", [
+            'evaluation_question_id' => $evaluation->questions()->firstOrFail()->id,
+            'likert_value' => 1,
+        ])->assertStatus(422)->assertJsonValidationErrors('evaluation');
+    }
+
     public function test_only_collaborators_with_a_position_can_start_an_assessment(): void
     {
         $company = Company::factory()->create();
