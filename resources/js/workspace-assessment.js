@@ -96,7 +96,7 @@ let activeFlow = 0;
 // Estado de guardado por evaluación: sobrevive a «Salir» y reabrir, para no perder ni ocultar cambios sin confirmar.
 const stores = new Map();
 const storeFor = (evaluationId) => {
-    if (!stores.has(evaluationId)) stores.set(evaluationId, { pending: new Map(), failed: new Map(), choices: new Map(), finalizing: false });
+    if (!stores.has(evaluationId)) stores.set(evaluationId, { answers: new Map(), pending: new Map(), failed: new Map(), choices: new Map(), finalizing: false });
     return stores.get(evaluationId);
 };
 window.addEventListener('beforeunload', (event) => { if (unsavedFlow?.()) { event.preventDefault(); event.returnValue = ''; } });
@@ -105,25 +105,22 @@ export async function showEvaluation(ctx, id) {
     const flow = ++activeFlow;
     const pageRevision = ctx.pageRevision;
     const isActive = () => flow === activeFlow && ctx.pageRevision === pageRevision;
-    const target = id || (await ctx.request('evaluations/start', { method: 'POST' })).id;
-    let evaluation = await ctx.get(`evaluations/${target}`);
+    const target = String(id || (await ctx.request('evaluations/start', { method: 'POST' })).id);
     if (!isActive()) return;
-    const store = storeFor(evaluation.id);
-    // Si al salir quedaron guardados en curso, se espera a que terminen y se relee el servidor.
-    if (store.pending.size) {
-        await Promise.allSettled([...store.pending.values()]);
-        evaluation = await ctx.get(`evaluations/${target}`);
-        if (!isActive()) return;
-    }
+    const store = storeFor(target);
+    if (store.pending.size) await Promise.allSettled([...store.pending.values()]);
+    if (!isActive()) return;
+    const evaluation = await ctx.get(`evaluations/${target}`);
+    if (!isActive()) return;
     if (evaluation.user_id !== ctx.user.id) throw new Error('Solo puedes responder tus propias evaluaciones.');
     if (evaluation.status === 'completed') { ctx.navigate('resultados'); return; }
     const questions = evaluation.questions ?? [];
     if (!questions.length) throw new Error('La prueba no tiene preguntas asignadas.');
 
     const [likertHelp, situationalHelp] = instructions(evaluation.assessment);
-    const answers = new Map((evaluation.responses ?? []).map((r) => [r.evaluation_question_id, r]));
-    // Guardado al marcar: una cola por pregunta para que la última elección siempre sea la que queda.
-    const { pending, failed, choices } = store;
+    const { answers, pending, failed, choices } = store;
+    answers.clear();
+    for (const response of evaluation.responses ?? []) answers.set(response.evaluation_question_id, response);
     const hasUnsavedAnswers = () => pending.size > 0 || failed.size > 0;
     unsavedFlow = hasUnsavedAnswers;
     let index = questions.findIndex((q) => !answers.has(q.id));
@@ -143,8 +140,9 @@ export async function showEvaluation(ctx, id) {
         pending.set(item.id, request);
         failed.delete(item.id);
         request.then((response) => {
-            if (pending.get(item.id) !== request) return;
             answers.set(item.id, response);
+            if (pending.get(item.id) !== request) return;
+            choices.delete(item.id);
             pending.delete(item.id);
             if (questions[index] === item) { status('Respuesta guardada.'); updateProgress(); }
         }, () => {
@@ -159,12 +157,13 @@ export async function showEvaluation(ctx, id) {
     // Garantiza que la respuesta de esta pregunta quedó guardada antes de avanzar.
     async function ensureSaved(item) {
         if (pending.has(item.id)) { try { await pending.get(item.id); } catch { /* se reintenta abajo */ } }
-        if (failed.has(item.id)) await save(item, failed.get(item.id));
+        if (isActive() && failed.has(item.id)) await save(item, failed.get(item.id));
     }
 
-    // Antes de revisar o enviar: espera lo pendiente y reintenta cada cambio que no se guardó.
+    // Con la edición bloqueada, espera lo pendiente y reintenta los cambios fallidos.
     async function flushAll() {
         await Promise.allSettled([...pending.values()]);
+        if (!isActive()) return failed.size;
         await Promise.allSettled([...failed.keys()].map((itemId) => ensureSaved(questions.find((item) => item.id === itemId))));
         return failed.size;
     }
@@ -192,7 +191,7 @@ export async function showEvaluation(ctx, id) {
     function renderQuestion() {
         const item = questions[index]; const q = item.question; const saved = answers.get(item.id);
         const likert = isLikert(item);
-        // Siempre la última elección local, aunque su guardado siga en curso o haya fallado.
+        // La elección local solo prevalece mientras esté pendiente o haya fallado.
         const selected = choices.get(item.id) ?? (likert ? saved?.likert_value : saved?.question_option_id);
         const initialStatus = pending.has(item.id) ? 'Guardando…' : failed.has(item.id) ? '' : saved ? 'Respuesta guardada.' : '';
         const position = `Pregunta ${index + 1} de ${total}`;
@@ -215,34 +214,45 @@ export async function showEvaluation(ctx, id) {
         </form>`)) return;
 
         const form = document.querySelector('#evaluation-response-form');
+        const fieldset = form.querySelector('fieldset');
+        const previous = document.querySelector('#evaluation-prev');
         form.addEventListener('change', (event) => {
-            if (event.target.name !== 'answer' || store.finalizing) return;
+            if (event.target.name !== 'answer' || fieldset.disabled || store.finalizing || !form.isConnected || !isActive()) return;
             status('Guardando…');
             save(item, Number(event.target.value));
         });
-        document.querySelector('#evaluation-prev').addEventListener('click', () => { index = Math.max(0, index - 1); renderQuestion(); });
+        previous.addEventListener('click', () => { if (!previous.disabled) { index = Math.max(0, index - 1); renderQuestion(); } });
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             const submit = form.querySelector('[type="submit"]');
-            if (submit.disabled) return;
+            if (submit.disabled || store.finalizing || !form.isConnected || !isActive()) return;
             if (!new FormData(form).get('answer')) { status('Elige una respuesta para continuar.', 'font-medium text-danger-700'); return; }
             submit.disabled = true;
+            const opensReview = reviewing || last;
+            if (opensReview) {
+                fieldset.disabled = true;
+                previous.disabled = true;
+            }
             try {
                 await ensureSaved(item);
             } catch (error) {
+                if (!form.isConnected || !isActive()) return;
+                fieldset.disabled = false;
+                previous.disabled = index === 0;
                 status(`No se pudo guardar tu respuesta. ${e(connectionMessage(error))}`, 'font-medium text-danger-700');
                 submit.disabled = false;
                 return;
             }
             // Si mientras se esperaba la persona ya cambió de pregunta, este formulario viejo no mueve nada.
-            if (!form.isConnected) return;
-            if (reviewing || last) renderReview(); else { index++; renderQuestion(); }
+            if (!form.isConnected || !isActive()) return;
+            if (opensReview) await renderReview(); else { index++; renderQuestion(); }
         });
     }
 
     async function renderReview() {
         reviewing = true;
         const unsaved = await flushAll();
+        if (!isActive()) return;
         const missing = questions.filter((item) => !answers.has(item.id)).length;
         const rows = questions.map((item, i) => {
             const answer = answerLabel(item);
@@ -260,7 +270,10 @@ export async function showEvaluation(ctx, id) {
         document.querySelector('#evaluation-submit').addEventListener('click', confirmSubmit);
     }
 
-    function confirmSubmit() {
+    function confirmSubmit(event) {
+        const submit = event.currentTarget;
+        const canSubmit = () => isActive() && submit.isConnected && !submit.disabled && !store.finalizing && !hasUnsavedAnswers();
+        if (!canSubmit()) return;
         ctx.modal('¿Enviar la prueba?', `<div class="space-y-5"><p class="text-[0.9375rem] leading-6 text-slate-700">Después de enviarla no podrás cambiar tus respuestas y se calculará tu resultado.</p><div id="confirm-feedback" aria-live="polite"></div><div class="flex flex-wrap justify-end gap-3"><button type="button" class="ws-button" data-dialog-close>Cancelar</button><button type="button" class="ws-primary" id="evaluation-confirm">Sí, enviar</button></div></div>`);
         const dialog = document.querySelector('#workspace-dialog');
         const confirm = document.querySelector('#evaluation-confirm');
@@ -276,11 +289,10 @@ export async function showEvaluation(ctx, id) {
             else { dialog.removeEventListener('cancel', blockEscape); dialog.removeEventListener('close', keepOpen); }
         };
         confirm.addEventListener('click', async () => {
+            if (!canSubmit()) return;
             confirm.disabled = true; confirm.textContent = 'Enviando…';
             lock(true);
             try {
-                // Nunca enviar con un cambio sin guardar: el servidor tendría la respuesta anterior.
-                if (await flushAll()) throw new Error('Hay respuestas que no se pudieron guardar. Revisa tu conexión y vuelve a intentarlo.');
                 try {
                     await ctx.request(`evaluations/${evaluation.id}/complete`, { method: 'POST' });
                 } catch (error) {
@@ -289,7 +301,7 @@ export async function showEvaluation(ctx, id) {
                     if (current?.status !== 'completed') throw error;
                 }
                 lock(false);
-                stores.delete(evaluation.id);
+                stores.delete(target);
                 if (unsavedFlow === hasUnsavedAnswers) unsavedFlow = null;
                 ctx.close();
                 if (!isActive()) return;
