@@ -1,20 +1,11 @@
 import assert from 'node:assert/strict';
-import { registerHooks } from 'node:module';
+import { register } from 'node:module';
 import { setImmediate } from 'node:timers/promises';
 import test from 'node:test';
 
-const workspaceUrl = new URL('../../resources/js/', import.meta.url).href;
-const hooks = registerHooks({
-    resolve(specifier, context, nextResolve) {
-        if (context.parentURL?.startsWith(workspaceUrl) && specifier.startsWith('./') && !/\.[^/]+$/.test(specifier)) {
-            return nextResolve(`${specifier}.js`, context);
-        }
-        return nextResolve(specifier, context);
-    },
-});
+register('./support/extensionless-loader.mjs', import.meta.url);
 globalThis.window = new EventTarget();
 const { showEvaluation } = await import('../../resources/js/workspace-assessment.js');
-hooks.deregister();
 delete globalThis.window;
 
 function element(properties = {}) {
