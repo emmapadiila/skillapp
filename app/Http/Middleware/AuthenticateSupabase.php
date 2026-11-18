@@ -57,7 +57,7 @@ class AuthenticateSupabase
             ->first();
 
         if ($user === null) {
-            return response()->json(['message' => 'La cuenta no está habilitada en SoftSkills AI.'], 403);
+            return response()->json(['message' => 'La cuenta no está habilitada en SkillDiagnóstico IA.'], 403);
         }
 
         if ($user->supabase_user_id === null) {

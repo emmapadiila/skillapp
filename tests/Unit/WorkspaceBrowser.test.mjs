@@ -89,7 +89,7 @@ test('workspace screens, responsive layouts and persisted form payloads work in 
         await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
         await call('Page.navigate', { url: origin + '/dashboard' }); await ready();
         assert.equal(await evaluate(`document.querySelector('#workspace-title').textContent`), 'Diagnóstico Organizacional');
-        assert.ok(await evaluate(`document.querySelector('#workspace-page').innerText.includes('80%')`));
+        assert.ok(await evaluate(`document.querySelector('#workspace-page').innerText.includes('75%')`));
         await shot('admin-dashboard-desktop');
         const adminScreens = ['colaboradores', 'evaluaciones', 'habilidades', 'preguntas', 'cargos', 'diagnostico', 'mapa-calor', 'brechas', 'recomendaciones', 'planes', 'seguimiento', 'reportes', 'areas'];
         for (const screen of adminScreens) {
@@ -132,18 +132,23 @@ test('workspace screens, responsive layouts and persisted form payloads work in 
         }
         await click('[data-screen-link="evaluacion"]'); await ready(); await click('[data-action="evaluation-start"]');
         await waitFor(`!!document.querySelector('#evaluation-response-form')`);
+        assert.ok(await evaluate(`document.querySelector('#evaluation-response-form').innerText.includes('Totalmente de acuerdo')`));
+        assert.ok(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), 'Mobile overflow: pregunta');
         await click('input[name="answer"][value="4"]'); await shot('evaluation-mobile');
         await evaluate(`document.querySelector('#evaluation-response-form').requestSubmit()`);
-        await waitFor(`document.querySelector('#dialog-title').textContent.includes('completada')`);
+        await waitFor(`!!document.querySelector('#evaluation-submit')`);
+        assert.ok(!writes.some((w) => w.key.endsWith('/complete')), 'La prueba no debe enviarse sin confirmación');
+        await click('#evaluation-submit'); await waitFor(`document.querySelector('#workspace-dialog').open`);
+        await click('#evaluation-confirm'); await waitFor(`!!document.querySelector('#done-title')`);
         const responseWrite = writes.find((w) => w.key.endsWith('/responses'));
         assert.equal(responseWrite.payload.likert_value, 4); assert.ok(responseWrite.payload.evaluation_question_id);
-        await click('[data-navigate="resultados"]'); await ready();
+        await click('#evaluation-results'); await ready();
         await click('[data-screen-link="plan"]'); await ready(); await click('[data-action="plan-detail"]');
         await waitFor(`!!document.querySelector('[data-complete-activity]')`); await click('[data-complete-activity]');
         await waitFor(`document.querySelector('#workspace-toast').textContent.includes('Actividad completada')`);
         assert.ok(writes.some((w) => w.key.includes('/activities/') && w.key.endsWith('/complete')));
         await click('[data-dialog-close]');
-        forcedFailure = true; await click('[data-action="reload"]'); await ready();
+        forcedFailure = true; await click('[data-screen-link="inicio"]'); await ready();
         assert.ok(await evaluate(`document.querySelector('#workspace-page').innerText.includes('No pudimos cargar')`));
         forcedFailure = false; await click('[data-action="reload"]'); await ready();
         await call('Page.navigate', { url: origin + '/login' });

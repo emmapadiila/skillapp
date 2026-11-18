@@ -62,7 +62,7 @@ class BrowserWorkspaceTest extends TestCase
             $currentIdentity = ['id' => $user->supabase_user_id, 'email' => $user->email];
             $this->actingAs($user)->withSession(['supabase.access_token' => 'browser-test-token']);
             $html = $this->get(route($role === 'admin' ? 'workspace' : 'personal.workspace'))->assertOk()->getContent();
-            $resources = ['me', 'catalogs', 'evaluations', 'improvement-plans', 'notifications', 'evaluations/'.$evaluation->id, 'evaluations/'.$pending->id, 'improvement-plans/'.$plan->id];
+            $resources = ['me', 'catalogs', 'assessments', 'evaluations', 'improvement-plans', 'notifications', 'evaluations/'.$evaluation->id, 'evaluations/'.$pending->id, 'improvement-plans/'.$plan->id];
             if ($role === 'admin') {
                 $resources = array_merge($resources, ['employees', 'positions', 'areas', 'skills', 'questions', 'diagnostics', 'diagnostics/'.$diagnostic->id, 'employees/'.$employee->id, 'skills/'.$skill->id, 'questions/'.$question->id, 'positions/'.$position->id, 'areas/'.$area->id]);
             }

@@ -27,7 +27,7 @@ class EvaluationService
         private readonly AssessmentScoringService $scoring,
     ) {}
 
-    public function assign(User $actor, array $data): Evaluation
+    public function assign(User $actor, array $data, bool $notify = true): Evaluation
     {
         $collaborator = User::query()->findOrFail($data['user_id']);
         $companyId = $collaborator->company_id;
@@ -92,7 +92,7 @@ class EvaluationService
             }
         }
 
-        return DB::transaction(function () use ($actor, $companyId, $collaborator, $data, $questionIds, $assessment): Evaluation {
+        return DB::transaction(function () use ($actor, $companyId, $collaborator, $data, $questionIds, $assessment, $notify): Evaluation {
             $evaluation = Evaluation::query()->create([
                 'company_id' => $companyId,
                 'user_id' => $collaborator->id,
@@ -113,14 +113,55 @@ class EvaluationService
                     'display_order' => $index + 1,
                 ])->all());
 
-            DB::afterCommit(fn () => $collaborator->notify(new EvaluationAssignedNotification($evaluation)));
+            if ($notify) {
+                DB::afterCommit(fn () => $collaborator->notify(new EvaluationAssignedNotification($evaluation)));
+            }
 
             return $evaluation->load('questions.question.options');
         });
     }
 
+    /**
+     * El colaborador inicia (o retoma) la prueba del eje de su cargo, sin esperar una asignación.
+     */
+    public function startOwn(User $user): Evaluation
+    {
+        $this->ensureConsent($user);
+
+        $axisId = $user->position?->organizational_axis_id;
+        $assessment = $axisId === null ? null : Assessment::query()
+            ->where('organizational_axis_id', $axisId)->where('is_active', true)->first();
+
+        if ($assessment === null) {
+            throw ValidationException::withMessages(['assessment' => 'Tu cargo no tiene una prueba disponible. Consulta con Talento Humano.']);
+        }
+
+        $ownEvaluations = Evaluation::query()->where('user_id', $user->id)->where('assessment_id', $assessment->id);
+
+        $open = (clone $ownEvaluations)
+            ->whereIn('status', [EvaluationStatus::Pending, EvaluationStatus::InProgress])
+            ->where('due_at', '>', now())->latest('assigned_at')->first();
+
+        if ($open !== null) {
+            return $open;
+        }
+
+        if ((clone $ownEvaluations)->where('status', EvaluationStatus::Completed)->exists()) {
+            throw ValidationException::withMessages(['assessment' => 'Ya completaste esta prueba. Talento Humano programará tu reevaluación.']);
+        }
+
+        return $this->assign($user, [
+            'user_id' => $user->id,
+            'type' => EvaluationType::Initial->value,
+            'assessment_id' => $assessment->id,
+            'due_at' => now()->addDays(30),
+        ], notify: false);
+    }
+
     public function respond(Evaluation $evaluation, User $user, array $data): EvaluationResponse
     {
+        $this->ensureConsent($user);
+
         if ($evaluation->status === EvaluationStatus::Completed) {
             throw ValidationException::withMessages(['evaluation' => 'La evaluación ya fue completada y es inmutable.']);
         }
@@ -221,5 +262,12 @@ class EvaluationService
 
             return $result->load(['skillResults', 'categoryResults']);
         });
+    }
+
+    private function ensureConsent(User $user): void
+    {
+        if ($user->consent_accepted_at === null) {
+            throw ValidationException::withMessages(['consent' => 'Debes aceptar el consentimiento informado antes de responder la prueba.']);
+        }
     }
 }

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'SoftSkills AI'),
+    'name' => env('APP_NAME', 'SkillDiagnóstico IA'),
 
     /*
     |--------------------------------------------------------------------------

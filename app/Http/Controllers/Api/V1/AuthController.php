@@ -33,7 +33,7 @@ class AuthController extends Controller
         }
 
         if ($result === null) {
-            return response()->json(['message' => 'La cuenta no está habilitada en SoftSkills AI.'], 403);
+            return response()->json(['message' => 'La cuenta no está habilitada en SkillDiagnóstico IA.'], 403);
         }
 
         return response()->json(['data' => [
@@ -73,6 +73,17 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => 'Si la cuenta existe, recibirá instrucciones de recuperación.'], 202);
+    }
+
+    /**
+     * Registra la aceptación del consentimiento informado (Ley 1581 de 2012); conserva la primera fecha.
+     */
+    public function acceptConsent(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->forceFill(['consent_accepted_at' => $user->consent_accepted_at ?? now()])->save();
+
+        return response()->json(['data' => $user->load('company', 'position')]);
     }
 
     public function me(Request $request): JsonResponse

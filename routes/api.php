@@ -24,6 +24,7 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['supabase.auth', 'throttle:api'])->group(function (): void {
         Route::get('me', [AuthController::class, 'me']);
+        Route::post('me/consent', [AuthController::class, 'acceptConsent']);
         Route::get('catalogs', [CatalogController::class, 'index']);
         Route::get('assessments', [AssessmentController::class, 'index']);
         Route::post('catalogs/{catalog}', [CatalogController::class, 'store'])->middleware('role:superadmin');
@@ -47,6 +48,7 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('questions', QuestionController::class)
             ->middleware('role:superadmin,human_resources');
 
+        Route::post('evaluations/start', [EvaluationController::class, 'start']);
         Route::apiResource('evaluations', EvaluationController::class);
         Route::post('evaluations/{evaluation}/responses', [EvaluationController::class, 'respond']);
         Route::post('evaluations/{evaluation}/complete', [EvaluationController::class, 'complete']);

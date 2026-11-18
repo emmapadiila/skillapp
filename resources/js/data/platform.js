@@ -1,6 +1,5 @@
 export const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 export const normalize = (value) => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
-export const axisTone = (axis) => ({ operational: 'blue', mission: 'green', strategic: 'violet', operativo: 'blue', misional: 'green', estrategico: 'violet' })[axis.code ?? normalize(axis.name)] ?? 'gray';
 
 let refreshing;
 

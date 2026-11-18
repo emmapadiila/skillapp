@@ -1,25 +1,4 @@
-import './collaborators';
-import './skills';
-import './dashboard';
 import './workspace-app';
-
-const toast = document.querySelector('#interface-toast');
-let toastTimeout;
-
-const showToast = (message) => {
-    if (!(toast instanceof HTMLElement)) {
-        return;
-    }
-
-    toast.textContent = message;
-    toast.classList.remove('translate-y-3', 'opacity-0');
-    toast.classList.add('translate-y-0', 'opacity-100');
-    window.clearTimeout(toastTimeout);
-    toastTimeout = window.setTimeout(() => {
-        toast.classList.add('translate-y-3', 'opacity-0');
-        toast.classList.remove('translate-y-0', 'opacity-100');
-    }, 2400);
-};
 
 const sidebar = document.querySelector('#admin-sidebar');
 const backdrop = document.querySelector('#sidebar-backdrop');
@@ -38,18 +17,6 @@ sidebarOpen?.addEventListener('click', () => {
 document.querySelector('#sidebar-close')?.addEventListener('click', closeSidebar);
 backdrop?.addEventListener('click', closeSidebar);
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSidebar(); });
-
-document.querySelectorAll('[data-demo-nav]').forEach((button) => {
-    button.addEventListener('click', () => showToast(`${button.dataset.demoNav}: interfaz pendiente de conexión.`));
-});
-
-const notificationsToggle = document.querySelector('#notifications-toggle');
-const notificationsPanel = document.querySelector('#notifications-panel');
-notificationsToggle?.addEventListener('click', () => {
-    const isExpanded = notificationsToggle.getAttribute('aria-expanded') === 'true';
-    notificationsToggle.setAttribute('aria-expanded', String(!isExpanded));
-    notificationsPanel?.classList.toggle('hidden', isExpanded);
-});
 
 const passwordToggle = document.querySelector('.password-toggle');
 const passwordInput = document.querySelector('#password');

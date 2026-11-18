@@ -5,7 +5,7 @@
         'cyan' => 'text-cyan-300 border-cyan-400/20 bg-cyan-400/10',
         'emerald' => 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10',
         'violet' => 'text-violet-300 border-violet-400/20 bg-violet-400/10',
-        default => 'text-blue-300 border-blue-400/20 bg-blue-400/10',
+        default => 'text-brand-300 border-brand-400/20 bg-brand-400/10',
     };
 @endphp
 
@@ -31,6 +31,6 @@
     </div>
     <div class="pt-0.5">
         <h3 class="text-sm font-semibold text-white">{{ $title }}</h3>
-        <p class="mt-1 max-w-xs text-xs leading-relaxed text-blue-100/65">{{ $description }}</p>
+        <p class="mt-1 max-w-xs text-xs leading-relaxed text-brand-100/65">{{ $description }}</p>
     </div>
 </div>

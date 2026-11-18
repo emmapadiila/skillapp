@@ -1,7 +1,8 @@
 import { getAll, getData, requestData, normalize, connectionMessage } from './data/platform';
 import { e, icons, empty, button, formErrors, initials } from './workspace-ui';
 import { renderAdministration } from './workspace-admin';
-import { renderPersonal, showEvaluation } from './workspace-personal';
+import { renderPersonal } from './workspace-personal';
+import { showEvaluation } from './workspace-assessment';
 import { openRecordForm, recordAction } from './workspace-forms';
 
 const root = document.querySelector('[data-workspace]');
@@ -15,7 +16,7 @@ const dependencies = {
     diagnostico: ['diagnostics', 'skills'], 'mapa-calor': ['diagnostics', 'skills'], brechas: ['diagnostics', 'skills', 'areas'], recomendaciones: ['diagnostics', 'skills', 'areas'],
     planes: ['improvement-plans', 'employees', 'skills'], seguimiento: ['improvement-plans', 'evaluations', 'employees', 'positions', 'areas'],
     reportes: ['evaluations', 'employees', 'positions', 'areas', 'improvement-plans', 'diagnostics'],
-    evaluacion: ['evaluations'], resultados: ['evaluations'], plan: ['improvement-plans'], progreso: ['evaluations', 'improvement-plans'],
+    evaluacion: ['evaluations', 'assessments'], resultados: ['evaluations'], plan: ['improvement-plans'], progreso: ['evaluations', 'improvement-plans'],
     perfil: ['evaluations', 'improvement-plans'], notificaciones: ['notifications'], 'perfil-colaborador': ['employees', 'positions', 'areas', 'evaluations', 'improvement-plans'],
     areas: ['areas'], empresas: ['companies'],
 };
@@ -32,6 +33,7 @@ if (root) {
         screen: root.dataset.screen, admin: root.dataset.role !== 'collaborator', superadmin: root.dataset.role === 'superadmin',
         data: {}, state: { search: '', filters: {}, page: 1, sort: 0, direction: 1 }, selectedId: null, user: null,
         request: requestData, get: getData, reload: () => load(true), navigate, render,
+        refresh: (screen) => { cache.clear(); navigate(screen); },
         records: (key) => ctx.data[key] ?? [],
         axis: (id) => ctx.data.catalogs?.organizational_axes?.find((r) => r.id === Number(id)),
         category: (id) => ctx.data.catalogs?.skill_categories?.find((r) => r.id === Number(id)),
@@ -74,12 +76,13 @@ if (root) {
     function render() {
         document.querySelector('#workspace-title').textContent = titles[ctx.screen];
         document.querySelector('#workspace-breadcrumb').textContent = titles[ctx.screen];
+        document.querySelector('[aria-label="Ruta"]').hidden = ['inicio', 'dashboard'].includes(ctx.screen);
         document.title = `${titles[ctx.screen]} | SkillDiagnóstico IA`;
         document.querySelectorAll('[data-screen-link]').forEach((el) => {
             if (el.dataset.screenLink === (ctx.screen === 'perfil-colaborador' ? 'colaboradores' : ctx.screen)) el.setAttribute('aria-current', 'page');
             else el.removeAttribute('aria-current');
         });
-        page.innerHTML = `<div class="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-400"><span>Datos de tu organización</span>${button('Actualizar', 'reload')}</div><div class="space-y-5">${ctx.admin && !['perfil', 'notificaciones', 'resultados', 'evaluacion', 'plan', 'progreso', 'inicio'].includes(ctx.screen) ? renderAdministration(ctx) : renderPersonal(ctx)}</div>`;
+        page.innerHTML = `${ctx.admin ? `<div class="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-600"><span>Datos de tu organización</span>${button('Actualizar', 'reload')}</div>` : ''}<div class="space-y-5">${ctx.admin && !['perfil', 'notificaciones', 'resultados', 'evaluacion', 'plan', 'progreso', 'inicio'].includes(ctx.screen) ? renderAdministration(ctx) : renderPersonal(ctx)}</div>`;
         icons();
     }
 

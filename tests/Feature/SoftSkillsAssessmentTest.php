@@ -212,6 +212,59 @@ class SoftSkillsAssessmentTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_a_collaborator_must_accept_the_consent_before_starting_or_answering(): void
+    {
+        $company = Company::factory()->create();
+        $hr = $this->user($company, UserRole::HumanResources);
+        $collaborator = $this->user($company, UserRole::Collaborator, consented: false);
+        $assessment = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->firstOrFail();
+        $this->positionFor($collaborator, OrganizationalAxis::where('code', 'operational')->firstOrFail(), $assessment, requiredLevel: 3);
+
+        $this->actingAsApi($collaborator)->postJson('/api/v1/evaluations/start')
+            ->assertStatus(422)->assertJsonValidationErrors('consent');
+
+        $evaluation = $this->assign($hr, $collaborator, $assessment);
+        $this->actingAsApi($collaborator)->postJson("/api/v1/evaluations/{$evaluation->id}/responses", [
+            'evaluation_question_id' => $evaluation->questions()->firstOrFail()->id,
+            'likert_value' => 4,
+        ])->assertStatus(422)->assertJsonValidationErrors('consent');
+
+        $this->actingAsApi($collaborator)->postJson('/api/v1/me/consent')->assertOk();
+        $acceptedAt = $collaborator->refresh()->consent_accepted_at;
+        $this->assertNotNull($acceptedAt);
+
+        $this->travel(1)->day();
+        $this->actingAsApi($collaborator)->postJson('/api/v1/me/consent')->assertOk();
+        $this->assertTrue($acceptedAt->equalTo($collaborator->refresh()->consent_accepted_at));
+    }
+
+    public function test_a_collaborator_starts_and_resumes_the_assessment_of_their_own_axis(): void
+    {
+        $company = Company::factory()->create();
+        $collaborator = $this->user($company, UserRole::Collaborator);
+        $assessment = Assessment::where('code', 'MISSIONAL_SKILLS_V1')->firstOrFail();
+        $this->positionFor($collaborator, OrganizationalAxis::where('code', 'mission')->firstOrFail(), $assessment, requiredLevel: 3);
+
+        $started = $this->actingAsApi($collaborator)->postJson('/api/v1/evaluations/start')->assertCreated();
+        $this->assertSame($assessment->id, $started->json('data.assessment_id'));
+        $this->assertSame(15, $started->json('data.question_count'));
+
+        $this->actingAsApi($collaborator)->postJson('/api/v1/evaluations/start')
+            ->assertOk()->assertJsonPath('data.id', $started->json('data.id'));
+        $this->assertSame(1, Evaluation::where('user_id', $collaborator->id)->count());
+    }
+
+    public function test_only_collaborators_with_a_position_can_start_an_assessment(): void
+    {
+        $company = Company::factory()->create();
+
+        $this->actingAsApi($this->user($company, UserRole::HumanResources))
+            ->postJson('/api/v1/evaluations/start')->assertForbidden();
+
+        $this->actingAsApi($this->user($company, UserRole::Collaborator))
+            ->postJson('/api/v1/evaluations/start')->assertStatus(422)->assertJsonValidationErrors('assessment');
+    }
+
     public function test_an_instrument_cannot_be_assigned_to_a_collaborator_of_a_different_axis(): void
     {
         $company = Company::factory()->create();
@@ -321,12 +374,13 @@ class SoftSkillsAssessmentTest extends TestCase
         $this->actingAsApi($hrA)->getJson('/api/v1/evaluations')->assertOk()->assertJsonCount(0, 'data.data');
     }
 
-    private function user(Company $company, UserRole $role): User
+    private function user(Company $company, UserRole $role, bool $consented = true): User
     {
         return User::factory()->create([
             'company_id' => $company->id,
             'role' => $role,
             'supabase_user_id' => (string) Str::uuid(),
+            'consent_accepted_at' => $consented ? now() : null,
         ]);
     }
 

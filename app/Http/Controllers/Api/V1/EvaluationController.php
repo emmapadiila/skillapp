@@ -49,13 +49,21 @@ class EvaluationController extends Controller
         return response()->json(['data' => $evaluation], 201);
     }
 
+    public function start(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->role === UserRole::Collaborator, 403);
+        $evaluation = $this->evaluations->startOwn($request->user());
+
+        return response()->json(['data' => $evaluation], $evaluation->wasRecentlyCreated ? 201 : 200);
+    }
+
     public function show(Request $request, Evaluation $evaluation): JsonResponse
     {
         $this->authorize('view', $evaluation);
         $evaluation->load([
             'user:id,name,email', 'questions.question.skill.category',
             'questions.question.options', 'responses', 'result.skillResults', 'result.categoryResults',
-            'assessment:id,code,name,description,organizational_axis_id',
+            'assessment:id,code,name,description,instructions,axis_description,organizational_axis_id',
         ]);
 
         if ($request->user()->role === UserRole::Collaborator) {

@@ -39,19 +39,19 @@
         <meta name="session-refresh-url" content="{{ route('session.refresh') }}">
         <meta name="login-url" content="{{ route('login') }}">
         <meta name="color-scheme" content="light">
-        <meta name="theme-color" content="#0B1629">
+        <meta name="theme-color" content="#0b2029">
         <title>SkillDiagnóstico IA</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="workspace min-h-full bg-slate-50 font-sans text-slate-900 antialiased" data-workspace data-screen="{{ $initialScreen }}" data-role="{{ auth()->user()->role->value }}">
         <a href="#workspace-page" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] focus:rounded-lg focus:bg-white focus:p-3">Saltar al contenido</a>
-        <aside id="admin-sidebar" class="admin-sidebar fixed inset-y-0 left-0 z-40 flex w-60 -translate-x-full flex-col bg-[#0B1629] text-slate-400 transition-transform lg:translate-x-0" aria-label="Navegación principal">
+        <aside id="admin-sidebar" class="admin-sidebar fixed inset-y-0 left-0 z-40 flex w-60 -translate-x-full flex-col bg-brand-950 text-slate-400 transition-transform lg:translate-x-0" aria-label="Navegación principal">
             <a href="{{ route($collaborator ? 'personal.workspace' : 'workspace') }}" class="flex items-center gap-2.5 border-b border-white/10 p-5">
-                <span class="grid size-9 place-items-center rounded-xl bg-blue-600 text-sm font-bold text-white">SD</span>
-                <span><span class="block text-sm font-semibold text-white">SkillDiagnóstico</span><span class="text-xs font-medium text-blue-400">● IA</span></span>
+                <span class="grid size-9 place-items-center rounded-xl bg-brand-600 text-sm font-bold text-white">SD</span>
+                <span><span class="block text-sm font-semibold text-white">SkillDiagnóstico</span><span class="text-xs font-medium text-brand-400">● IA</span></span>
             </a>
             <button id="sidebar-close" class="absolute right-2 top-2 rounded-md p-1 text-white lg:hidden" aria-label="Cerrar menú">×</button>
-            <p class="mx-3 mt-3 rounded-lg bg-blue-700/15 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-blue-400">Vista {{ $collaborator ? 'colaborador' : 'administrador' }}</p>
+            <p class="mx-3 mt-3 rounded-lg bg-brand-700/15 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-brand-400">Vista {{ $collaborator ? 'colaborador' : 'administrador' }}</p>
             <nav class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
                 @foreach ($navigation as [$key, $label, $route, $icon])
                     <a href="{{ route($route) }}" data-screen-link="{{ $key }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/5 hover:text-white">
@@ -61,7 +61,7 @@
             </nav>
             <div class="border-t border-white/10 p-3">
                 <a href="{{ route('web.profile') }}" data-screen-link="perfil" class="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5">
-                    <span data-user-initials class="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
+                    <span data-user-initials class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
                     <span class="min-w-0 flex-1"><span data-user-name class="block truncate text-xs font-medium text-white">{{ auth()->user()->name }}</span><span class="block text-xs text-slate-500">{{ $collaborator ? 'Colaborador' : 'Talento humano' }}</span></span>
                     <span data-icon="user" class="size-4 shrink-0" aria-hidden="true"></span>
                 </a>
@@ -72,10 +72,10 @@
         <main class="min-h-dvh lg:pl-60">
             <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-100 bg-white px-4 shadow-sm sm:px-6">
                 <button id="sidebar-open" class="grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 lg:hidden" aria-expanded="false" aria-controls="admin-sidebar" aria-label="Abrir menú"><span data-icon="menu" class="size-4"></span></button>
-                <div class="min-w-0 flex-1"><nav class="mb-0.5 truncate text-xs text-slate-400" aria-label="Ruta"><span>{{ $collaborator ? 'Inicio' : 'Dashboard' }}</span><span class="px-1">›</span><span id="workspace-breadcrumb" class="font-medium text-slate-600"></span></nav><h1 id="workspace-title" class="truncate text-lg font-bold">Cargando…</h1></div>
+                <div class="min-w-0 flex-1"><nav class="mb-0.5 truncate text-xs text-slate-500" aria-label="Ruta"><span>{{ $collaborator ? 'Inicio' : 'Dashboard' }}</span><span class="px-1">›</span><span id="workspace-breadcrumb" class="font-medium text-slate-600"></span></nav><h1 id="workspace-title" class="truncate text-lg font-bold">Cargando…</h1></div>
                 <label class="relative hidden md:block"><span class="sr-only">Buscar en esta pantalla</span><span data-icon="search" class="absolute left-3 top-2.5 size-4 text-slate-400"></span><input id="workspace-search" type="search" placeholder="Buscar…" class="w-48 rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm"></label>
                 <a href="{{ route('web.notifications') }}" data-screen-link="notificaciones" class="relative grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500" aria-label="Notificaciones"><span data-icon="bell" class="size-4"></span><span id="unread-count" hidden class="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"></span></a>
-                <a href="{{ route('web.profile') }}" data-screen-link="perfil" data-user-initials class="grid size-9 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white" aria-label="Mi perfil">{{ mb_substr(auth()->user()->name, 0, 1) }}</a>
+                <a href="{{ route('web.profile') }}" data-screen-link="perfil" data-user-initials class="grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white" aria-label="Mi perfil">{{ mb_substr(auth()->user()->name, 0, 1) }}</a>
             </header>
             <section id="workspace-page" tabindex="-1" class="mx-auto max-w-[1600px] p-4 outline-none sm:p-6" aria-live="polite"></section>
         </main>
