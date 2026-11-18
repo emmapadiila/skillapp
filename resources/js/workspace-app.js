@@ -33,7 +33,7 @@ if (root) {
     const ctx = {
         screen: root.dataset.screen, admin: root.dataset.role !== 'collaborator', superadmin: root.dataset.role === 'superadmin',
         data: {}, state: { search: '', filters: {}, page: 1, sort: 0, direction: 1 }, selectedId: null, user: null,
-        request: requestData, get: getData, reload: () => load(true), navigate, render,
+        request: requestData, get: getData, reload: () => load(true), navigate, render, pageRevision: 0,
         refresh: (screen) => { cache.clear(); navigate(screen); },
         records: (key) => ctx.data[key] ?? [],
         axis: (id) => ctx.data.catalogs?.organizational_axes?.find((r) => r.id === Number(id)),
@@ -75,6 +75,7 @@ if (root) {
     }
 
     function render() {
+        ctx.pageRevision++;
         document.querySelector('#workspace-title').textContent = titles[ctx.screen];
         document.querySelector('#workspace-breadcrumb').textContent = titles[ctx.screen];
         document.querySelector('[aria-label="Ruta"]').hidden = ['inicio', 'tablero-estrategico'].includes(ctx.screen);
@@ -97,8 +98,7 @@ if (root) {
 
     async function load(force = false) {
         const current = ++generation;
-        // Toda carga de pantalla es una navegación: los flujos abiertos antes ya no deben dibujar.
-        ctx.navigation = generation;
+        ctx.pageRevision++;
         if (force) cache.clear();
         page.setAttribute('aria-busy', 'true');
         page.innerHTML = `<div role="status" class="space-y-4"><p class="text-sm text-slate-500">Cargando ${e(titles[ctx.screen])}…</p><div class="grid grid-cols-2 gap-4 lg:grid-cols-4">${Array.from({ length: 4 }, () => '<div class="h-28 animate-pulse rounded-xl bg-slate-200/60"></div>').join('')}</div><div class="h-64 animate-pulse rounded-xl bg-slate-200/60"></div></div>`;
@@ -143,6 +143,7 @@ if (root) {
             render();
         } catch (error) {
             if (current !== generation) return;
+            ctx.pageRevision++;
             page.innerHTML = `<div role="alert" class="rounded-xl border border-red-100 bg-red-50 p-5"><h2 class="font-bold text-red-800">No pudimos cargar esta pantalla</h2><p class="my-3 text-sm text-red-700">${e(connectionMessage(error))}</p><div class="flex flex-wrap gap-2">${button('Reintentar', 'reload')}<a class="ws-button" href="${e(document.querySelector('meta[name="login-url"]').content)}">Iniciar sesión</a></div></div>`;
         } finally {
             if (current === generation) page.removeAttribute('aria-busy');

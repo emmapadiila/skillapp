@@ -97,10 +97,11 @@ window.addEventListener('beforeunload', (event) => { if (unsavedFlow?.()) { even
 
 export async function showEvaluation(ctx, id) {
     const flow = ++activeFlow;
-    const visit = ctx.navigation;
-    const isActive = () => flow === activeFlow && ctx.navigation === visit;
+    const pageRevision = ctx.pageRevision;
+    const isActive = () => flow === activeFlow && ctx.pageRevision === pageRevision;
     const target = id || (await ctx.request('evaluations/start', { method: 'POST' })).id;
     const evaluation = await ctx.get(`evaluations/${target}`);
+    if (!isActive()) return;
     if (evaluation.user_id !== ctx.user.id) throw new Error('Solo puedes responder tus propias evaluaciones.');
     if (evaluation.status === 'completed') { ctx.navigate('resultados'); return; }
     const questions = evaluation.questions ?? [];
@@ -111,7 +112,8 @@ export async function showEvaluation(ctx, id) {
     // Guardado al marcar: una cola por pregunta para que la última elección siempre sea la que queda.
     const pending = new Map();
     const failed = new Map();
-    unsavedFlow = () => pending.size > 0 || failed.size > 0;
+    const hasUnsavedAnswers = () => pending.size > 0 || failed.size > 0;
+    unsavedFlow = hasUnsavedAnswers;
     let index = questions.findIndex((q) => !answers.has(q.id));
     if (index < 0) index = questions.length - 1;
     let reviewing = false;
@@ -119,7 +121,7 @@ export async function showEvaluation(ctx, id) {
     const isLikert = (item) => item.question.type === 'self_report';
     const firstOfType = (type) => questions.findIndex((item) => item.question.type === type);
 
-    const status = (html, tone = 'text-slate-600') => { const el = document.querySelector('#save-status'); if (el) { el.className = `min-h-6 text-sm ${tone}`; el.innerHTML = html; } };
+    const status = (html, tone = 'text-slate-600') => { const el = isActive() && document.querySelector('#save-status'); if (el) { el.className = `min-h-6 text-sm ${tone}`; el.innerHTML = html; } };
 
     function save(item, value) {
         const data = { evaluation_question_id: item.id, ...(isLikert(item) ? { likert_value: value } : { question_option_id: value }) };
@@ -155,7 +157,7 @@ export async function showEvaluation(ctx, id) {
     }
 
     const progressBar = () => progress(answers.size / total * 100, 'var(--color-brand-600)', false).replace(/aria-label="[^"]*"/, `aria-label="${answers.size} de ${total} preguntas respondidas"`);
-    const updateProgress = () => { const el = document.querySelector('#test-progress'); if (el) el.innerHTML = progressBar(); };
+    const updateProgress = () => { const el = isActive() && document.querySelector('#test-progress'); if (el) el.innerHTML = progressBar(); };
     const header = (label) => `<div class="space-y-2"><div class="flex items-center justify-between gap-3"><p class="text-sm font-semibold text-slate-900">${label}</p><button type="button" class="ws-link text-sm" data-navigate="inicio">Salir<span class="sr-only"> de la prueba; tu avance queda guardado</span></button></div><div id="test-progress">${progressBar()}</div></div>`;
 
     // Devuelve false si la persona ya salió de la prueba: así una espera terminada tarde no la reabre.
@@ -244,18 +246,21 @@ export async function showEvaluation(ctx, id) {
     function confirmSubmit() {
         ctx.modal('¿Enviar la prueba?', `<div class="space-y-5"><p class="text-[0.9375rem] leading-6 text-slate-700">Después de enviarla no podrás cambiar tus respuestas y se calculará tu resultado.</p><div id="confirm-feedback" aria-live="polite"></div><div class="flex flex-wrap justify-end gap-3"><button type="button" class="ws-button" data-dialog-close>Cancelar</button><button type="button" class="ws-primary" id="evaluation-confirm">Sí, enviar</button></div></div>`);
         const confirm = document.querySelector('#evaluation-confirm');
+        const feedback = document.querySelector('#confirm-feedback');
         confirm.addEventListener('click', async () => {
             confirm.disabled = true; confirm.textContent = 'Enviando…';
             try {
                 // Nunca enviar con un cambio sin guardar: el servidor tendría la respuesta anterior.
                 if (await flushAll()) throw new Error('Hay respuestas que no se pudieron guardar. Revisa tu conexión y vuelve a intentarlo.');
                 await ctx.request(`evaluations/${evaluation.id}/complete`, { method: 'POST' });
-                unsavedFlow = null;
+                if (unsavedFlow === hasUnsavedAnswers) unsavedFlow = null;
+                if (!isActive()) return;
                 ctx.close();
                 if (!show(`<section class="ws-panel space-y-4 text-center" aria-labelledby="done-title"><span class="mx-auto grid size-16 place-items-center rounded-full bg-success-100 text-success-700" aria-hidden="true">${svg('check').replace('size-4', 'size-8')}</span><h2 id="done-title" class="text-2xl font-bold outline-none" data-focus tabindex="-1">¡Gracias! Tu prueba quedó enviada</h2><p class="text-[0.9375rem] leading-6 text-slate-700">Tus respuestas se guardaron y tu resultado ya está calculado. En él verás tus fortalezas y lo que puedes desarrollar.</p><button type="button" class="ws-primary" id="evaluation-results">Ver mi resultado</button></section>`)) return;
                 document.querySelector('#evaluation-results').addEventListener('click', () => ctx.refresh('resultados'));
             } catch (error) {
-                document.querySelector('#confirm-feedback').innerHTML = `<div class="ws-alert ws-alert--danger">${formErrors(error)}</div>`;
+                if (!isActive()) return;
+                feedback.innerHTML = `<div class="ws-alert ws-alert--danger">${formErrors(error)}</div>`;
                 confirm.disabled = false; confirm.textContent = 'Sí, enviar';
             }
         });
