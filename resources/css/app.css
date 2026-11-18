@@ -84,7 +84,6 @@
     .workspace button, .workspace a { @apply transition-colors; }
     .workspace [data-screen-link][aria-current='page'] { @apply bg-brand-600 font-medium text-white; }
     .workspace [data-screen-link][aria-current='page'] * { color: inherit !important; }
-    .admin-sidebar.is-open { transform: translateX(0); }
 
     /* Badges: estado/eje (tonos) y nivel de resultado */
     .ws-badge { @apply inline-flex max-w-full items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium; }
@@ -124,6 +123,9 @@
     .ws-chart-column strong { font-size: 12px; margin-bottom: 4px; color: var(--color-slate-700); }
     .ws-chart-column span { position: absolute; top: 100%; margin-top: 8px; font-size: 11px; color: var(--color-slate-600); text-align: center; }
 }
+
+/* Fuera de las capas para ganarle a la utilidad -translate-x-full, que en Tailwind 4 usa la propiedad translate. */
+.admin-sidebar.is-open { translate: 0 0; }
 
 @media print {
     .workspace aside, .workspace header, .workspace button, #workspace-toast { display: none !important; }

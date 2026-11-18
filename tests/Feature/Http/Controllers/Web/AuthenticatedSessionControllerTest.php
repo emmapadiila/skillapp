@@ -20,7 +20,7 @@ class AuthenticatedSessionControllerTest extends TestCase
         $response
             ->assertOk()
             ->assertViewIs('auth.login')
-            ->assertSee('Transforma el talento')
+            ->assertSee('Diagnóstico de habilidades blandas en tres ejes')
             ->assertSee('name="email"', false)
             ->assertSee('name="password"', false)
             ->assertSee('autocomplete="current-password"', false);

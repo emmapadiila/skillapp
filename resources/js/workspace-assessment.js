@@ -11,20 +11,23 @@ const page = () => document.querySelector('#workspace-page');
 export function assessmentScreen(ctx) {
     if (!ctx.user.consent_accepted_at) return consent(ctx);
 
+    const confirmation = ctx.consentJustAccepted ? '<p id="consent-confirmation" tabindex="-1" class="ws-alert ws-alert--success mb-4 outline-none">Autorización registrada.</p>' : '';
+    ctx.consentJustAccepted = false;
+
     const evaluations = own(ctx);
     const open = evaluations.find(isOpen);
     const completed = evaluations.find((ev) => ev.status === 'completed');
     const assessment = ctx.records('assessments').find((a) => a.id === open?.assessment_id) ?? open?.assessment ?? ctx.records('assessments')[0];
 
     if (!open && completed) {
-        return `<div class="mx-auto max-w-2xl"><article class="ws-panel space-y-4 text-center"><span class="mx-auto grid size-14 place-items-center rounded-full bg-success-100 text-2xl text-success-700" aria-hidden="true">✓</span><h2 class="text-xl font-bold">Ya completaste tu prueba</h2><p class="text-sm text-slate-600">La enviaste el ${e(date(completed.completed_at))}. Talento Humano programará tu próxima reevaluación.</p><button type="button" class="ws-primary" data-navigate="resultados">Ver mi resultado</button></article></div>`;
+        return `<div class="mx-auto max-w-2xl">${confirmation}<article class="ws-panel space-y-4 text-center"><span class="mx-auto grid size-14 place-items-center rounded-full bg-success-100 text-2xl text-success-700" aria-hidden="true">✓</span><h2 class="text-xl font-bold">Ya completaste tu prueba</h2><p class="text-sm text-slate-600">La enviaste el ${e(date(completed.completed_at))}. Talento Humano programará tu próxima reevaluación.</p><button type="button" class="ws-primary" data-navigate="resultados">Ver mi resultado</button></article></div>`;
     }
-    if (!assessment && !open) return empty('Todavía no tienes una prueba disponible', 'Tu cargo no tiene una prueba asociada. Consulta con el área de Talento Humano.');
+    if (!assessment && !open) return `<div class="mx-auto max-w-2xl">${confirmation}</div>` + empty('Todavía no tienes una prueba disponible', 'Tu cargo no tiene una prueba asociada. Consulta con el área de Talento Humano.');
 
     const questions = open?.question_count ?? assessment?.questions?.length ?? 0;
     const [likertHelp, situationalHelp] = instructions(assessment);
-    return `<div class="mx-auto max-w-2xl"><article class="ws-panel space-y-5">
-        <header><p class="text-sm font-medium text-brand-700">Antes de comenzar</p><h2 class="mt-1 text-xl font-bold">${e(assessment?.name ?? 'Evaluación de habilidades blandas')}</h2></header>
+    return `<div class="mx-auto max-w-2xl">${confirmation}<article class="ws-panel space-y-5">
+        <header><h2 class="text-xl font-bold">${e(assessment?.name ?? 'Evaluación de habilidades blandas')}</h2></header>
         <ul class="grid gap-3 text-sm sm:grid-cols-3">
             <li class="rounded-control bg-slate-50 p-3"><strong class="block text-lg">${questions}</strong><span class="text-slate-600">preguntas</span></li>
             <li class="rounded-control bg-slate-50 p-3"><strong class="block text-lg">10–15 min</strong><span class="text-slate-600">tiempo estimado</span></li>
@@ -34,6 +37,7 @@ export function assessmentScreen(ctx) {
             ${likertHelp ? `<p><strong>Afirmaciones.</strong> ${e(likertHelp)}</p>` : ''}
             ${situationalHelp ? `<p><strong>Situaciones.</strong> ${e(situationalHelp)}</p>` : ''}
             <p>Puedes cerrar la prueba en cualquier momento y retomarla donde la dejaste${open ? `, hasta el ${e(date(open.due_at))}` : ''}.</p>
+            <p class="text-slate-600">Autorizaste el tratamiento de tus datos el ${e(date(ctx.user.consent_accepted_at))}.</p>
         </section>
         <button type="button" class="ws-primary w-full sm:w-auto" data-action="evaluation-start" data-id="${e(open?.id ?? '')}">${open?.status === 'in_progress' ? 'Continuar la prueba' : 'Comenzar la prueba'}</button>
     </article></div>`;
@@ -54,19 +58,20 @@ function consent(ctx) {
             const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
             try {
                 ctx.user = await ctx.request('me/consent', { method: 'POST' });
-                ctx.toast('Consentimiento registrado.');
+                ctx.consentJustAccepted = true;
                 ctx.render();
+                document.querySelector('#consent-confirmation')?.focus();
             } catch (error) { form.querySelector('#consent-feedback').innerHTML = formErrors(error); submit.disabled = false; }
         });
     });
     return `<div class="mx-auto max-w-2xl"><form id="consent-form" class="ws-panel space-y-5" aria-labelledby="consent-title">
-        <header><p class="text-sm font-medium text-brand-700">Antes de comenzar</p><h2 id="consent-title" class="mt-1 text-xl font-bold">Consentimiento informado</h2></header>
+        <header><h2 id="consent-title" class="text-xl font-bold">Consentimiento informado</h2><p class="mt-1 text-sm text-slate-600">Un paso antes de comenzar tu prueba.</p></header>
         <p class="text-sm leading-6 text-slate-700">De acuerdo con la Ley 1581 de 2012 de protección de datos personales, ${e(company)} te pide autorización para tratar la información de esta prueba.</p>
-        <dl class="grid gap-3 text-sm leading-6">
-            <div class="rounded-control bg-slate-50 p-3"><dt class="font-semibold">Qué datos</dt><dd class="text-slate-700">Tus respuestas, tus resultados y los datos de tu cargo y área.</dd></div>
-            <div class="rounded-control bg-slate-50 p-3"><dt class="font-semibold">Para qué</dt><dd class="text-slate-700">Diagnosticar habilidades blandas y diseñar planes de mejoramiento.</dd></div>
-            <div class="rounded-control bg-slate-50 p-3"><dt class="font-semibold">Quién los ve</dt><dd class="text-slate-700">Tú y el área de Talento Humano.</dd></div>
-            <div class="rounded-control bg-slate-50 p-3"><dt class="font-semibold">Tus derechos</dt><dd class="text-slate-700">Conocer, actualizar y rectificar tus datos, pedir que se supriman y revocar esta autorización, solicitándolo a Talento Humano.</dd></div>
+        <dl class="divide-y divide-slate-200 border-y border-slate-200 text-[0.9375rem] leading-6">
+            <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4"><dt class="font-semibold">Qué datos</dt><dd class="text-slate-700">Tus respuestas, tus resultados y los datos de tu cargo y área.</dd></div>
+            <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4"><dt class="font-semibold">Para qué</dt><dd class="text-slate-700">Diagnosticar habilidades blandas y diseñar planes de mejoramiento.</dd></div>
+            <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4"><dt class="font-semibold">Quién los ve</dt><dd class="text-slate-700">Tú y el área de Talento Humano.</dd></div>
+            <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4"><dt class="font-semibold">Tus derechos</dt><dd class="text-slate-700">Conocer, actualizar y rectificar tus datos, pedir que se supriman y revocar esta autorización, solicitándolo a Talento Humano.</dd></div>
         </dl>
         <label class="ws-choice"><input type="checkbox" name="accept" required class="size-5 shrink-0 accent-brand-600"><span>He leído la información anterior y autorizo el tratamiento de mis datos.</span></label>
         <div id="consent-feedback" aria-live="polite"></div>

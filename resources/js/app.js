@@ -3,17 +3,34 @@ import './workspace-app';
 const sidebar = document.querySelector('#admin-sidebar');
 const backdrop = document.querySelector('#sidebar-backdrop');
 const sidebarOpen = document.querySelector('#sidebar-open');
+const desktop = window.matchMedia('(min-width: 1024px)');
+// En móvil el menú cerrado queda fuera de pantalla: inert evita que el teclado entre en él.
+const pageContent = [document.querySelector('main'), document.querySelector('a[href="#workspace-page"]')].filter(Boolean);
+const syncInert = () => {
+    if (!sidebar) return;
+    const open = sidebar.classList.contains('is-open');
+    sidebar.inert = !desktop.matches && !open;
+    // Con el menú abierto en móvil, la página tapada no recibe foco.
+    pageContent.forEach((el) => { el.inert = !desktop.matches && open; });
+};
 const closeSidebar = () => {
+    const wasOpen = sidebar?.classList.contains('is-open');
     sidebar?.classList.remove('is-open');
     backdrop?.classList.add('hidden');
     sidebarOpen?.setAttribute('aria-expanded', 'false');
+    syncInert();
+    if (wasOpen && !desktop.matches) sidebarOpen?.focus();
 };
 
 sidebarOpen?.addEventListener('click', () => {
     sidebar?.classList.add('is-open');
     backdrop?.classList.remove('hidden');
     sidebarOpen.setAttribute('aria-expanded', 'true');
+    syncInert();
+    sidebar?.querySelector('[aria-current="page"], a[href]')?.focus();
 });
+desktop.addEventListener('change', syncInert);
+syncInert();
 document.querySelector('#sidebar-close')?.addEventListener('click', closeSidebar);
 backdrop?.addEventListener('click', closeSidebar);
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSidebar(); });

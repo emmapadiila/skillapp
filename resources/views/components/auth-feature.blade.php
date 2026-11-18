@@ -9,8 +9,8 @@
     };
 @endphp
 
-<div {{ $attributes->class(['group flex items-start gap-4']) }}>
-    <div class="grid size-12 shrink-0 place-items-center rounded-xl border transition-transform duration-300 group-hover:-translate-y-0.5 {{ $toneClasses }}">
+<li {{ $attributes->class(['flex items-start gap-4']) }}>
+    <div class="grid size-12 shrink-0 place-items-center rounded-xl border {{ $toneClasses }}">
         @if ($icon === 'brain')
             <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                 <path d="M9.5 5.2A3 3 0 0 0 4.8 7a3 3 0 0 0-1 5.2A3.5 3.5 0 0 0 7 17.8 3 3 0 0 0 12 20V4a3 3 0 0 0-2.5 1.2Z"/><path d="M7 9.5c1.2 0 2.2.7 2.6 1.7M7 17.8c-.2-1.7.5-3 2-3.8M14.5 5.2A3 3 0 0 1 19.2 7a3 3 0 0 1 1 5.2 3.5 3.5 0 0 1-3.2 5.6A3 3 0 0 1 12 20V4a3 3 0 0 1 2.5 1.2Z"/><path d="M17 9.5c-1.2 0-2.2.7-2.6 1.7M17 17.8c.2-1.7-.5-3-2-3.8"/>
@@ -30,7 +30,7 @@
         @endif
     </div>
     <div class="pt-0.5">
-        <h3 class="text-sm font-semibold text-white">{{ $title }}</h3>
-        <p class="mt-1 max-w-xs text-xs leading-relaxed text-brand-100/65">{{ $description }}</p>
+        <p class="text-base font-semibold text-white">{{ $title }}</p>
+        <p class="mt-1 max-w-xs text-sm leading-relaxed text-brand-100">{{ $description }}</p>
     </div>
-</div>
+</li>

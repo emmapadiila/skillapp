@@ -1,33 +1,40 @@
 @php
     $collaborator = auth()->user()->role === \App\Enums\UserRole::Collaborator;
+    // Grupos del menú: [título del grupo (null = sin título), [[pantalla, texto, ruta, ícono, nota], …]].
     $navigation = $collaborator ? [
-        ['inicio', 'Inicio', 'personal.workspace', 'home'],
-        ['evaluacion', 'Mi evaluación', 'personal.evaluacion', 'clipboard'],
-        ['resultados', 'Mis resultados', 'personal.resultados', 'chart'],
-        ['plan', 'Mi plan', 'personal.plan', 'target'],
-        ['progreso', 'Mi progreso', 'personal.progreso', 'trend'],
-        ['perfil', 'Mi perfil', 'web.profile', 'user'],
-        ['notificaciones', 'Notificaciones', 'web.notifications', 'bell'],
+        [null, [
+            ['inicio', 'Inicio', 'personal.workspace', 'home'],
+            ['evaluacion', 'Mi evaluación', 'personal.evaluacion', 'clipboard'],
+            ['resultados', 'Mis resultados', 'personal.resultados', 'chart'],
+            ['plan', 'Mi plan', 'personal.plan', 'target'],
+            ['progreso', 'Mi progreso', 'personal.progreso', 'trend'],
+            ['perfil', 'Mi perfil', 'web.profile', 'user'],
+            ['notificaciones', 'Notificaciones', 'web.notifications', 'bell'],
+        ]],
     ] : [
-        ['tablero-operativo', 'Tablero operativo', 'web.tablero-operativo', 'chart'],
-        ['tablero-misional', 'Tablero misional', 'web.tablero-misional', 'chart'],
-        ['tablero-estrategico', 'Tablero estratégico', 'web.tablero-estrategico', 'chart'],
-        ['colaboradores', 'Colaboradores', 'collaborators.index', 'users'],
-        ['evaluaciones', 'Evaluaciones', 'web.evaluaciones', 'clipboard'],
-        ['habilidades', 'Habilidades', 'web.habilidades', 'brain'],
-        ['preguntas', 'Banco de preguntas', 'web.preguntas', 'help'],
-        ['cargos', 'Cargos', 'web.cargos', 'briefcase'],
-        ['diagnostico', 'Diagnóstico organizacional', 'diagnostics.organizational', 'chart'],
-        ['brechas', 'Brechas', 'web.brechas', 'warning'],
-        ['recomendaciones', 'Recomendaciones IA', 'web.recomendaciones', 'sparkles'],
-        ['planes', 'Planes de mejoramiento', 'web.planes', 'target'],
-        ['seguimiento', 'Seguimiento', 'web.seguimiento', 'calendar'],
-        ['reportes', 'Reportes', 'web.reportes', 'file'],
-        ['areas', 'Áreas', 'web.areas', 'building'],
+        ['Tableros', [
+            ['tablero-operativo', 'Tablero operativo', 'web.tablero-operativo', 'chart'],
+            ['tablero-misional', 'Tablero misional', 'web.tablero-misional', 'chart'],
+            ['tablero-estrategico', 'Tablero estratégico', 'web.tablero-estrategico', 'chart'],
+        ]],
+        ['Personas y pruebas', array_values(array_filter([
+            ['colaboradores', 'Colaboradores', 'collaborators.index', 'users'],
+            ['evaluaciones', 'Evaluaciones', 'web.evaluaciones', 'clipboard'],
+            ['preguntas', 'Banco de preguntas', 'web.preguntas', 'help'],
+            ['habilidades', 'Habilidades', 'web.habilidades', 'brain'],
+            ['cargos', 'Cargos', 'web.cargos', 'briefcase'],
+            ['areas', 'Áreas', 'web.areas', 'building'],
+            auth()->user()->isSuperadmin() ? ['empresas', 'Empresas', 'web.empresas', 'building'] : null,
+        ]))],
+        ['Seguimiento', [
+            ['diagnostico', 'Diagnóstico organizacional', 'diagnostics.organizational', 'chart'],
+            ['brechas', 'Brechas', 'web.brechas', 'warning'],
+            ['planes', 'Planes de mejoramiento', 'web.planes', 'target'],
+            ['seguimiento', 'Seguimiento', 'web.seguimiento', 'calendar'],
+            ['reportes', 'Reportes', 'web.reportes', 'file'],
+            ['recomendaciones', 'Recomendaciones IA', 'web.recomendaciones', 'sparkles', 'No disponible aún'],
+        ]],
     ];
-    if (auth()->user()->isSuperadmin()) {
-        $navigation[] = ['empresas', 'Empresas', 'web.empresas', 'building'];
-    }
     $initialScreen = $screen;
 @endphp
 <!DOCTYPE html>
@@ -48,16 +55,22 @@
         <a href="#workspace-page" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] focus:rounded-lg focus:bg-white focus:p-3">Saltar al contenido</a>
         <aside id="admin-sidebar" class="admin-sidebar fixed inset-y-0 left-0 z-40 flex w-60 -translate-x-full flex-col bg-brand-950 text-slate-400 transition-transform lg:translate-x-0" aria-label="Navegación principal">
             <a href="{{ route($collaborator ? 'personal.workspace' : 'workspace') }}" class="flex items-center gap-2.5 border-b border-white/10 p-5">
-                <span class="grid size-9 place-items-center rounded-xl bg-brand-600 text-sm font-bold text-white">SD</span>
-                <span><span class="block text-sm font-semibold text-white">SkillDiagnóstico</span><span class="text-xs font-medium text-brand-400">● IA</span></span>
+                <span class="grid size-9 place-items-center rounded-xl bg-brand-600 text-sm font-bold text-white" aria-hidden="true">SD</span>
+                <span class="text-[0.9375rem] font-semibold text-white">SkillDiagnóstico IA</span>
             </a>
-            <button id="sidebar-close" class="absolute right-2 top-2 rounded-md p-1 text-white lg:hidden" aria-label="Cerrar menú">×</button>
-            <p class="mx-3 mt-3 rounded-lg bg-brand-700/15 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-brand-200">Vista {{ $collaborator ? 'colaborador' : 'administrador' }}</p>
-            <nav class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
-                @foreach ($navigation as [$key, $label, $route, $icon])
-                    <a href="{{ route($route) }}" data-screen-link="{{ $key }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/5 hover:text-white">
-                        <span data-icon="{{ $icon }}" class="size-4 shrink-0" aria-hidden="true"></span><span class="min-w-0 flex-1 truncate">{{ $label }}</span>
-                    </a>
+            <button id="sidebar-close" class="absolute right-2 top-3 grid size-10 place-items-center rounded-lg text-white hover:bg-white/10 lg:hidden" aria-label="Cerrar menú"><span data-icon="close" class="size-5" aria-hidden="true"></span></button>
+            <nav class="min-h-0 flex-1 overflow-y-auto px-3 pb-3" aria-label="Secciones">
+                @foreach ($navigation as $index => [$group, $items])
+                    @if ($group)<p id="nav-group-{{ $index }}" class="px-3 pb-1 pt-5 text-xs font-medium text-slate-400">{{ $group }}</p>@endif
+                    <ul class="space-y-0.5 {{ $group ? '' : 'pt-3' }}" @if ($group) aria-labelledby="nav-group-{{ $index }}" @endif>
+                        @foreach ($items as $item)
+                            @php([$key, $label, $route, $icon] = $item)
+                            <li><a href="{{ route($route) }}" data-screen-link="{{ $key }}" class="flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/5 hover:text-white">
+                                <span data-icon="{{ $icon }}" class="size-4 shrink-0" aria-hidden="true"></span><span class="min-w-0 flex-1 truncate">{{ $label }}</span>
+                                @isset($item[4])<span class="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[0.6875rem] text-slate-300">{{ $item[4] }}</span>@endisset
+                            </a></li>
+                        @endforeach
+                    </ul>
                 @endforeach
             </nav>
             <div class="border-t border-white/10 p-3">
@@ -78,13 +91,13 @@
                 <a href="{{ route('web.notifications') }}" data-screen-link="notificaciones" class="relative grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500" aria-label="Notificaciones"><span data-icon="bell" class="size-4"></span><span id="unread-count" hidden class="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"></span></a>
                 <a href="{{ route('web.profile') }}" data-screen-link="perfil" data-user-initials class="grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white" aria-label="Mi perfil">{{ mb_substr(auth()->user()->name, 0, 1) }}</a>
             </header>
-            <section id="workspace-page" tabindex="-1" class="mx-auto max-w-[1600px] p-4 outline-none sm:p-6" aria-live="polite"></section>
+            <section id="workspace-page" tabindex="-1" class="mx-auto max-w-[1600px] p-4 outline-none sm:p-6"></section>
         </main>
         <dialog id="workspace-dialog" class="workspace-dialog w-[min(94vw,680px)] rounded-2xl bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-black/50" aria-labelledby="dialog-title">
             <div class="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6"><h2 id="dialog-title" class="font-bold"></h2><button data-dialog-close class="rounded-lg p-2 hover:bg-slate-100" aria-label="Cerrar">×</button></div>
             <div id="dialog-content" class="p-5 sm:p-6"></div>
         </dialog>
-        <div id="workspace-toast" hidden role="status" class="fixed bottom-5 left-1/2 z-[70] w-max max-w-[90vw] -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 text-sm text-white shadow-xl"></div>
+        <div id="workspace-toast" hidden role="status" class="fixed left-1/2 top-20 z-[70] sm:bottom-5 sm:top-auto w-max max-w-[90vw] -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 text-sm text-white shadow-xl"></div>
         <noscript><p class="fixed bottom-0 right-0 bg-amber-50 p-4 text-sm">Activa JavaScript para consultar los datos y realizar operaciones.</p></noscript>
     </body>
 </html>
