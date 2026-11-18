@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\EvaluationStatus;
 use App\Enums\GapPriority;
+use App\Enums\ResultLevel;
 use App\Models\DiagnosticMatrixCell;
 use App\Models\Evaluation;
 use App\Models\OrganizationalDiagnostic;
@@ -15,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 class DiagnosticService
 {
+    public function __construct(private readonly AssessmentScoringService $scoring) {}
+
     public function generate(User $actor, array $data): OrganizationalDiagnostic
     {
         $companyId = $actor->isSuperadmin() ? ($data['company_id'] ?? null) : $actor->company_id;
@@ -32,8 +35,9 @@ class DiagnosticService
             ->where('company_id', $companyId)->where('status', EvaluationStatus::Completed)
             ->whereBetween('completed_at', [$data['period_start'].' 00:00:00', $data['period_end'].' 23:59:59'])
             ->with([
-                'responses.evaluationQuestion.question.skill.category',
+                'assessment',
                 'result.skillResults.skill',
+                'result.categoryResults',
                 'user.position.skills',
             ])->get();
 
@@ -63,28 +67,36 @@ class DiagnosticService
         });
     }
 
+    /**
+     * Cada celda es el promedio de los resultados de una categoría (0–100) en un eje.
+     */
     private function createMatrix(OrganizationalDiagnostic $diagnostic, Collection $evaluations): void
     {
-        $responses = $evaluations->flatMap->responses->filter(
-            fn ($response) => $response->evaluationQuestion->question->organizational_axis_id !== null
-        );
+        $evaluations->flatMap(function (Evaluation $evaluation): array {
+            $axisId = $evaluation->assessment?->organizational_axis_id ?? $evaluation->user?->position?->organizational_axis_id;
 
-        $responses->groupBy(function ($response): string {
-            $question = $response->evaluationQuestion->question;
+            if ($axisId === null || $evaluation->result === null) {
+                return [];
+            }
 
-            return $question->organizational_axis_id.'|'.$question->skill->skill_category_id;
-        })->each(function (Collection $items, string $key) use ($diagnostic): void {
-            [$axisId, $categoryId] = array_map('intval', explode('|', $key));
-            $score = round((float) $items->avg('score'), 2);
-            DiagnosticMatrixCell::query()->create([
-                'organizational_diagnostic_id' => $diagnostic->id,
-                'organizational_axis_id' => $axisId,
-                'skill_category_id' => $categoryId,
-                'average_score' => $score,
-                'level' => $this->level($score),
-                'evaluated_count' => $items->pluck('user_id')->unique()->count(),
-            ]);
-        });
+            return $evaluation->result->categoryResults->map(fn ($category): array => [
+                'axis_id' => $axisId,
+                'category_id' => $category->skill_category_id,
+                'score' => (float) $category->score,
+                'user_id' => $evaluation->user_id,
+            ])->all();
+        })->groupBy(fn (array $row): string => $row['axis_id'].'|'.$row['category_id'])
+            ->each(function (Collection $items) use ($diagnostic): void {
+                $score = round((float) $items->avg('score'), 2);
+                DiagnosticMatrixCell::query()->create([
+                    'organizational_diagnostic_id' => $diagnostic->id,
+                    'organizational_axis_id' => $items->first()['axis_id'],
+                    'skill_category_id' => $items->first()['category_id'],
+                    'average_score' => $score,
+                    'level' => ResultLevel::fromScore($score)->value,
+                    'evaluated_count' => $items->pluck('user_id')->unique()->count(),
+                ]);
+            });
     }
 
     private function createGaps(OrganizationalDiagnostic $diagnostic, Collection $evaluations): void
@@ -98,7 +110,8 @@ class DiagnosticService
 
             foreach ($evaluation->result->skillResults as $skillResult) {
                 $required = $position->skills->firstWhere('id', $skillResult->skill_id)?->pivot?->required_level;
-                $gap = $required === null ? 0 : max(0, (float) $required - (float) $skillResult->score);
+                // El nivel requerido (1–5) se lleva a 0–100 y la brecha se expresa en puntos de la escala 1–5 (25 puntos = 1).
+                $gap = $required === null ? 0 : max(0, ($this->scoring->normalize((float) $required) - (float) $skillResult->score) / 25);
                 if ($gap <= 0) {
                     continue;
                 }
@@ -129,15 +142,5 @@ class DiagnosticService
                 'score_gap' => $average,
             ]);
         });
-    }
-
-    private function level(float $score): string
-    {
-        return match (true) {
-            $score >= 4.5 => 'outstanding',
-            $score >= 3.5 => 'strong',
-            $score >= 2.5 => 'developing',
-            default => 'critical',
-        };
     }
 }

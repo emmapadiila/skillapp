@@ -22,7 +22,7 @@ return new class extends Migration
             $table->jsonb('ai_recommendations')->nullable();
             $table->timestamp('closed_at');
             $table->timestamps();
-            $table->unique(['company_id', 'period_start', 'period_end']);
+            $table->unique(['company_id', 'period_start', 'period_end'], 'org_diagnostics_company_period_unique');
         });
 
         Schema::create('diagnostic_matrix_cells', function (Blueprint $table) {
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->string('level', 50);
             $table->unsignedInteger('evaluated_count');
             $table->timestamps();
-            $table->unique(['organizational_diagnostic_id', 'organizational_axis_id', 'skill_category_id']);
+            $table->unique(['organizational_diagnostic_id', 'organizational_axis_id', 'skill_category_id'], 'matrix_cells_diagnostic_axis_category_unique');
         });
 
         Schema::create('organizational_gaps', function (Blueprint $table) {

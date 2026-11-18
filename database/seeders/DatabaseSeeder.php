@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\OrganizationalAxis;
-use App\Models\SkillCategory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -22,13 +21,12 @@ class DatabaseSeeder extends Seeder
             ['code' => 'strategic', 'name' => 'Estratégico', 'description' => 'Roles de dirección y decisión estratégica.', 'is_active' => true],
         ], ['code'], ['name', 'description', 'is_active']);
 
-        SkillCategory::query()->upsert([
-            ['code' => 'communication', 'name' => 'Comunicativas', 'description' => null, 'is_active' => true],
-            ['code' => 'collaboration', 'name' => 'Colaborativas', 'description' => null, 'is_active' => true],
-            ['code' => 'cognitive', 'name' => 'Cognitivas', 'description' => null, 'is_active' => true],
-            ['code' => 'leadership', 'name' => 'Dirección', 'description' => null, 'is_active' => true],
-        ], ['code'], ['name', 'description', 'is_active']);
-
-        $this->call([AssessmentInstrumentSeeder::class, DemoUserSeeder::class]);
+        $this->call([
+            CategoriaHabilidadSeeder::class,
+            PruebaOperativaSeeder::class,
+            PruebaMisionalSeeder::class,
+            PruebaEstrategicaSeeder::class,
+            DemoUserSeeder::class,
+        ]);
     }
 }

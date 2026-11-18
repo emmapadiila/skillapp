@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\RecoverPasswordRequest;
 use App\Http\Requests\Api\V1\RefreshTokenRequest;
 use App\Http\Requests\Api\V1\SignInRequest;
 use App\Services\AuthenticationService;
+use App\Services\LocalTokenService;
 use App\Services\SupabaseAuthService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly SupabaseAuthService $auth,
         private readonly AuthenticationService $authentication,
+        private readonly LocalTokenService $localTokens,
     ) {}
 
     public function signIn(SignInRequest $request): JsonResponse
@@ -42,6 +44,14 @@ class AuthController extends Controller
 
     public function refresh(RefreshTokenRequest $request): JsonResponse
     {
+        if ($this->localTokens->enabled()) {
+            $user = $this->localTokens->user($request->string('refresh_token')->toString(), 'refresh');
+
+            return $user === null
+                ? response()->json(['message' => 'El token de renovación no es válido.'], 401)
+                : response()->json(['data' => $this->localTokens->issue($user)]);
+        }
+
         try {
             return response()->json(['data' => $this->auth->refresh($request->string('refresh_token')->toString())]);
         } catch (RequestException) {
@@ -51,6 +61,11 @@ class AuthController extends Controller
 
     public function recover(RecoverPasswordRequest $request): JsonResponse
     {
+        // shortcut: sin Supabase no se envían correos de recuperación; el administrador restablece la contraseña.
+        if ($this->localTokens->enabled()) {
+            return response()->json(['message' => 'Si la cuenta existe, recibirá instrucciones de recuperación.'], 202);
+        }
+
         try {
             $this->auth->recover($request->string('email')->toString(), $request->validated('redirect_to'));
         } catch (RequestException) {

@@ -16,7 +16,7 @@ if (dashboard) {
         const [employees, evaluations, skills, diagnostics] = results.map((result) => result.status === 'fulfilled' ? result.value : null);
         const completed = evaluations?.filter((evaluation) => evaluation.status === 'completed');
         const scores = completed?.filter((evaluation) => evaluation.result?.total_score != null).map((evaluation) => Number(evaluation.result.total_score));
-        metrics([employees?.length ?? '—', completed?.length ?? '—', scores?.length ? `${(scores.reduce((total, score) => total + score, 0) / scores.length).toFixed(2)} / 5` : '—', skills?.length ?? '—']);
+        metrics([employees?.length ?? '—', completed?.length ?? '—', scores?.length ? `${(scores.reduce((total, score) => total + score, 0) / scores.length).toFixed(2)} / 100` : '—', skills?.length ?? '—']);
         const statuses = { pending: 'Pendientes', in_progress: 'En curso', completed: 'Completadas', expired: 'Vencidas' };
         document.querySelector('#evaluation-distribution').innerHTML = evaluations?.length ? Object.entries(statuses).map(([key, label]) => {
             const count = evaluations.filter((evaluation) => evaluation.status === key).length;

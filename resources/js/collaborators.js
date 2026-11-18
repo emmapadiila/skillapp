@@ -21,7 +21,7 @@ if (page) {
     const badge = ({ label, tone }) => `<span class="collaborator-badge collaborator-badge--${tone}">${escape(label)}</span>`;
     const score = (person) => person.score === null
         ? '<span class="text-xs italic text-slate-400">Sin resultado</span>'
-        : `<span class="font-bold ${person.score >= 3.5 ? 'text-emerald-600' : 'text-amber-600'}">${person.score} / 5</span>`;
+        : `<span class="font-bold ${person.score >= 75 ? 'text-emerald-600' : 'text-amber-600'}">${person.score} / 100</span>`;
     const profileButton = (person) => `<button type="button" data-profile="${person.id}" class="collaborator-profile-button" aria-label="Ver perfil de ${escape(person.name)}"><svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Ver perfil</button>`;
     const identity = (person) => `<div class="flex min-w-0 items-center gap-3"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">${escape(initials(person.name))}</span><div class="min-w-0"><p class="font-semibold text-slate-900">${escape(person.name)}</p><p class="break-all text-xs text-slate-400">${escape(person.email)}</p></div></div>`;
     const valueFor = (person) => sortColumn === 'axis' ? collaboratorAxes[person.axis].label
@@ -93,7 +93,7 @@ if (page) {
         const button = event.target.closest('[data-profile]');
         if (!button) return;
         const person = collaborators.find((item) => item.id === Number(button.dataset.profile));
-        const details = { ...person, initials: initials(person.name), axis: collaboratorAxes[person.axis].label, status: collaboratorStatuses[person.status].label, score: person.score === null ? 'Sin resultado' : `${person.score} / 5` };
+        const details = { ...person, initials: initials(person.name), axis: collaboratorAxes[person.axis].label, status: collaboratorStatuses[person.status].label, score: person.score === null ? 'Sin resultado' : `${person.score} / 100` };
         ['name', 'email', 'initials', 'position', 'area', 'axis', 'status', 'score'].forEach((key) => {
             profile.querySelector(`#profile-${key}`).textContent = details[key];
         });

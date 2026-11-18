@@ -128,7 +128,9 @@ erDiagram
 
 | Tabla / columna | Detalle |
 |---|---|
-| `assessments` | Instrumento: `code` (único), `name`, `description`, `organizational_axis_id`, `is_active` |
+| `assessments` | Instrumento: `code` (único), `name`, `description`, `instructions`, `axis_description`, `indicators` (JSON), `organizational_axis_id`, `is_active` |
+| `assessment_skill` | Peso (`weight`) de cada habilidad en la prueba |
+| `users.consent_accepted_at` | Fecha de aceptación del consentimiento informado (Ley 1581 de 2012) |
 | `questions.assessment_id` | Prueba a la que pertenece la pregunta (nullable) |
 | `questions.code` | Identificador estable del ítem (ej. `OPERATIVE_SKILLS_V1-S1Q2`) |
 | `questions.display_order` | Orden de presentación dentro de la prueba |

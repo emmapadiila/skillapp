@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\LoginRequest;
 use App\Services\AuthenticationService;
+use App\Services\LocalTokenService;
 use App\Services\SupabaseAuthService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -66,7 +67,7 @@ class AuthenticatedSessionController extends Controller
         return redirect()->route('login');
     }
 
-    public function refresh(Request $request, SupabaseAuthService $supabase): JsonResponse
+    public function refresh(Request $request, SupabaseAuthService $supabase, LocalTokenService $localTokens): JsonResponse
     {
         $refreshToken = $request->session()->get('supabase.refresh_token');
         if (! is_string($refreshToken) || ! $request->user()->is_active) {
@@ -74,7 +75,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         try {
-            $session = $supabase->refresh($refreshToken);
+            $session = $localTokens->enabled() ? $localTokens->issue($request->user()) : $supabase->refresh($refreshToken);
         } catch (RequestException) {
             return response()->json(['message' => 'La sesión venció. Vuelve a iniciar sesión.'], 401);
         } catch (ConnectionException) {

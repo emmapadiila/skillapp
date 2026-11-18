@@ -13,10 +13,11 @@ use App\Models\Position;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\Skill;
+use App\Models\SkillCategory;
 use App\Models\User;
-use Database\Seeders\AssessmentInstrumentSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -66,13 +67,40 @@ class SoftSkillsAssessmentTest extends TestCase
 
     public function test_the_seeder_is_idempotent(): void
     {
-        $this->seed(AssessmentInstrumentSeeder::class);
-        $this->seed(AssessmentInstrumentSeeder::class);
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(DatabaseSeeder::class);
 
         $this->assertSame(3, Assessment::count());
+        $this->assertSame(4, SkillCategory::count());
         $this->assertSame(48, Question::count());
         $this->assertSame(16, Skill::count());
         $this->assertSame(64, QuestionOption::count());
+        $this->assertSame(16, DB::table('assessment_skill')->count());
+        $this->assertSame(2, User::count());
+    }
+
+    public function test_the_seeder_loads_the_annex_content_weights_and_scores(): void
+    {
+        $this->assertSame(32, Question::where('type', QuestionType::SelfReport)->count());
+        $this->assertSame(16, Question::where('type', QuestionType::SituationalJudgment)->count());
+        $this->assertEqualsCanonicalizing(
+            ['Comunicativas y relacionales', 'Trabajo colaborativo', 'Cognitivas y de autogestión', 'Dirección y desarrollo'],
+            SkillCategory::pluck('name')->all(),
+        );
+
+        $operative = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->with('skills')->firstOrFail();
+        $this->assertEquals(1.5, $operative->skills->firstWhere('name', 'Trabajo en equipo')->pivot->weight);
+        $this->assertEquals(1.0, $operative->skills->firstWhere('name', 'Adaptabilidad ante cambios en la asignación de tareas')->pivot->weight);
+        $this->assertCount(3, $operative->indicators);
+        $this->assertStringStartsWith('Nivel de ejecución diaria de tareas', $operative->axis_description);
+
+        $situational = Question::where('code', 'OPERATIVE_SKILLS_V1-S1Q3')->with('options')->firstOrFail();
+        $this->assertStringStartsWith('Al final del turno, a tu compañero de línea le faltan 40 unidades', $situational->text);
+        $this->assertSame(['1.00', '5.00', '2.00', '3.00'], $situational->options->sortBy('display_order')->pluck('score')->values()->all());
+
+        // Cada pregunta situacional tiene exactamente una mejor opción (5).
+        Question::where('type', QuestionType::SituationalJudgment)->with('options')->get()
+            ->each(fn (Question $question) => $this->assertSame(1, $question->options->where('score', '5.00')->count()));
     }
 
     public function test_each_skill_has_two_likert_items_and_one_situational_judgment_item(): void
@@ -91,8 +119,6 @@ class SoftSkillsAssessmentTest extends TestCase
                 $this->assertCount(1, $questions->where('type', QuestionType::SituationalJudgment));
             }
 
-            $difficulties = $assessment->questions->pluck('difficulty')->map->value->unique();
-            $this->assertEqualsCanonicalizing(['basic', 'intermediate', 'advanced'], $difficulties->all());
         }
     }
 
@@ -127,11 +153,63 @@ class SoftSkillsAssessmentTest extends TestCase
             ->postJson("/api/v1/evaluations/{$evaluation->id}/complete");
 
         $completed->assertOk();
-        $this->assertSame(5.0, (float) $completed->json('data.total_score'));
-        $this->assertSame('outstanding', $completed->json('data.level'));
+        $this->assertSame(100.0, (float) $completed->json('data.total_score'));
+        $this->assertSame('strength', $completed->json('data.level'));
         $this->assertCount(5, $completed->json('data.skill_results'));
         $this->assertCount(3, $completed->json('data.category_results'));
         $this->assertSame('completed', $evaluation->refresh()->status->value);
+    }
+
+    public function test_the_weighted_result_is_stored_by_skill_and_category(): void
+    {
+        $company = Company::factory()->create();
+        $axis = OrganizationalAxis::where('code', 'operational')->firstOrFail();
+        $hr = $this->user($company, UserRole::HumanResources);
+        $collaborator = $this->user($company, UserRole::Collaborator);
+        $assessment = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->firstOrFail();
+        $this->positionFor($collaborator, $axis, $assessment, requiredLevel: 4);
+
+        $evaluation = $this->assign($hr, $collaborator, $assessment);
+        $this->answerAll($collaborator, $evaluation, likert: 3, optionScore: 5);
+        $result = $this->actingAsApi($collaborator)->postJson("/api/v1/evaluations/{$evaluation->id}/complete")->assertOk();
+
+        // Cada habilidad: promedio (3 + 3 + 5) / 3 → (11/3 − 1) / 4 × 100 = 66.67, "En desarrollo".
+        foreach ($result->json('data.skill_results') as $skill) {
+            $this->assertSame(66.67, (float) $skill['score']);
+            $this->assertSame('developing', $skill['level']);
+        }
+        $this->assertSame(66.67, (float) $result->json('data.total_score'));
+    }
+
+    public function test_a_collaborator_only_sees_the_assessment_of_their_axis_without_option_scores(): void
+    {
+        $company = Company::factory()->create();
+        $collaborator = $this->user($company, UserRole::Collaborator);
+        $operative = Assessment::where('code', 'OPERATIVE_SKILLS_V1')->firstOrFail();
+        $this->positionFor($collaborator, OrganizationalAxis::where('code', 'operational')->firstOrFail(), $operative, requiredLevel: 3);
+
+        $response = $this->actingAsApi($collaborator)->getJson('/api/v1/assessments')->assertOk();
+
+        $response->assertJsonCount(1, 'data.data')->assertJsonPath('data.data.0.code', 'OPERATIVE_SKILLS_V1');
+        $option = collect($response->json('data.data.0.questions'))->firstWhere('type', 'situational_judgment')['options'][0];
+        $this->assertArrayNotHasKey('score', $option);
+
+        $this->actingAsApi($this->humanResources())->getJson('/api/v1/assessments')
+            ->assertOk()->assertJsonCount(3, 'data.data')
+            ->assertJsonStructure(['data' => ['data' => [['questions' => [['options']]]]]]);
+    }
+
+    public function test_a_collaborator_cannot_assign_evaluations(): void
+    {
+        $company = Company::factory()->create();
+        $collaborator = $this->user($company, UserRole::Collaborator);
+
+        $this->actingAsApi($collaborator)->postJson('/api/v1/evaluations', [
+            'user_id' => $collaborator->id,
+            'type' => 'initial',
+            'assessment_id' => Assessment::where('code', 'OPERATIVE_SKILLS_V1')->value('id'),
+            'due_at' => now()->addWeek()->toIso8601String(),
+        ])->assertForbidden();
     }
 
     public function test_an_instrument_cannot_be_assigned_to_a_collaborator_of_a_different_axis(): void

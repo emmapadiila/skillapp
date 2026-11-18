@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\LocalTokenService;
 use App\Services\SupabaseAuthService;
 use Closure;
 use Illuminate\Http\Client\ConnectionException;
@@ -14,7 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticateSupabase
 {
-    public function __construct(private readonly SupabaseAuthService $auth) {}
+    public function __construct(
+        private readonly SupabaseAuthService $auth,
+        private readonly LocalTokenService $localTokens,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -22,6 +26,16 @@ class AuthenticateSupabase
 
         if ($token === null) {
             return $this->unauthorized();
+        }
+
+        if ($this->localTokens->enabled()) {
+            $user = $this->localTokens->user($token);
+
+            if ($user === null) {
+                return $this->unauthorized();
+            }
+
+            return $this->authenticated($request, $next, $user);
         }
 
         try {
@@ -51,6 +65,12 @@ class AuthenticateSupabase
         }
 
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
+
+        return $this->authenticated($request, $next, $user);
+    }
+
+    private function authenticated(Request $request, Closure $next, User $user): Response
+    {
         Auth::setUser($user);
         $request->setUserResolver(fn (): User => $user);
 

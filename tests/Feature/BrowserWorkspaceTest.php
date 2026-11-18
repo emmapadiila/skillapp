@@ -73,7 +73,7 @@ class BrowserWorkspaceTest extends TestCase
             $fixtures[$role] = ['html' => $html, 'responses' => $responses, 'ids' => ['employee' => $employee->id, 'evaluation' => $pending->id, 'completed' => $evaluation->id, 'plan' => $plan->id]];
         }
 
-        $this->assertSame('4.00', $fixtures['collaborator']['responses']['evaluations/'.$evaluation->id]['data']['result']['total_score']);
+        $this->assertSame('75.00', $fixtures['collaborator']['responses']['evaluations/'.$evaluation->id]['data']['result']['total_score']);
         $this->assertSame($employee->id, $fixtures['collaborator']['responses']['me']['data']['id']);
         $this->assertSame(1, $fixtures['admin']['responses']['diagnostics/'.$diagnostic->id]['data']['total_evaluated']);
         Http::assertSent(fn ($request): bool => $request->url() === 'https://supabase.test/auth/v1/user');

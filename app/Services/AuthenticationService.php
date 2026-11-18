@@ -6,13 +6,22 @@ use App\Models\User;
 
 class AuthenticationService
 {
-    public function __construct(private readonly SupabaseAuthService $supabase) {}
+    public function __construct(
+        private readonly SupabaseAuthService $supabase,
+        private readonly LocalTokenService $localTokens,
+    ) {}
 
     /**
      * @return array{session: array<string, mixed>, user: User}|null
      */
     public function attempt(string $email, string $password): ?array
     {
+        if ($this->localTokens->enabled()) {
+            $user = $this->localTokens->attempt($email, $password);
+
+            return $user === null ? null : ['session' => $this->localTokens->issue($user), 'user' => $user];
+        }
+
         $session = $this->supabase->signIn($email, $password);
         $identity = $session['user'] ?? null;
 

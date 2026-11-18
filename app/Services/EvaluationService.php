@@ -6,6 +6,7 @@ use App\Contracts\AssessmentAnalyzer;
 use App\Enums\EvaluationStatus;
 use App\Enums\EvaluationType;
 use App\Enums\QuestionType;
+use App\Enums\ResultLevel;
 use App\Models\Assessment;
 use App\Models\CategoryResult;
 use App\Models\Evaluation;
@@ -16,13 +17,15 @@ use App\Models\Question;
 use App\Models\SkillResult;
 use App\Models\User;
 use App\Notifications\EvaluationAssignedNotification;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class EvaluationService
 {
-    public function __construct(private readonly AssessmentAnalyzer $analyzer) {}
+    public function __construct(
+        private readonly AssessmentAnalyzer $analyzer,
+        private readonly AssessmentScoringService $scoring,
+    ) {}
 
     public function assign(User $actor, array $data): Evaluation
     {
@@ -177,19 +180,27 @@ class EvaluationService
                 throw ValidationException::withMessages(['evaluation' => 'Debe responder todas las preguntas antes de completar la evaluación.']);
             }
 
-            $totalScore = round((float) $responses->avg('score'), 2);
+            $items = $responses->map(fn (EvaluationResponse $response): array => [
+                'skill_id' => $response->evaluationQuestion->question->skill_id,
+                'category_id' => $response->evaluationQuestion->question->skill->skill_category_id,
+                'score' => (float) $response->score,
+            ]);
+            $weights = $evaluation->assessment?->skills
+                ->mapWithKeys(fn ($skill): array => [$skill->id => (float) $skill->pivot->weight])->all() ?? [];
+            $scores = $this->scoring->score($items->all(), $weights);
+
+            // Punto de integración de la IA de planes de mejora: hoy responde NullAssessmentAnalyzer.
             $analysis = $this->analyzer->analyze([
                 'evaluation_id' => $evaluation->id,
-                'total_score' => $totalScore,
-                'responses' => $responses->map(fn (EvaluationResponse $response): array => [
-                    'skill_id' => $response->evaluationQuestion->question->skill_id,
-                    'score' => (float) $response->score,
-                ])->all(),
+                'total_score' => $scores['total'],
+                'skill_scores' => $scores['skills'],
+                'category_scores' => $scores['categories'],
+                'responses' => $items->all(),
             ]);
             $result = EvaluationResult::query()->create([
                 'evaluation_id' => $evaluation->id,
-                'total_score' => $totalScore,
-                'level' => $this->level($totalScore),
+                'total_score' => $scores['total'],
+                'level' => ResultLevel::fromScore($scores['total'])->value,
                 'ai_analysis' => $analysis['analysis'],
                 'strengths' => $analysis['strengths'],
                 'opportunities' => $analysis['opportunities'],
@@ -198,39 +209,17 @@ class EvaluationService
                 'immutable_at' => now(),
             ]);
 
-            $this->storeSkillResults($result, $responses);
-            $this->storeCategoryResults($result, $responses);
+            foreach ($scores['skills'] as $skillId => $score) {
+                SkillResult::query()->create(['evaluation_result_id' => $result->id, 'skill_id' => $skillId, 'score' => $score, 'level' => ResultLevel::fromScore($score)->value, 'strengths' => [], 'opportunities' => []]);
+            }
+
+            foreach ($scores['categories'] as $categoryId => $score) {
+                CategoryResult::query()->create(['evaluation_result_id' => $result->id, 'skill_category_id' => $categoryId, 'score' => $score, 'level' => ResultLevel::fromScore($score)->value, 'strengths' => [], 'opportunities' => []]);
+            }
+
             $evaluation->update(['status' => EvaluationStatus::Completed, 'completed_at' => now()]);
 
             return $result->load(['skillResults', 'categoryResults']);
         });
-    }
-
-    private function storeSkillResults(EvaluationResult $result, Collection $responses): void
-    {
-        $responses->groupBy(fn (EvaluationResponse $response) => $response->evaluationQuestion->question->skill_id)
-            ->each(function (Collection $items, int $skillId) use ($result): void {
-                $score = round((float) $items->avg('score'), 2);
-                SkillResult::query()->create(['evaluation_result_id' => $result->id, 'skill_id' => $skillId, 'score' => $score, 'level' => $this->level($score), 'strengths' => [], 'opportunities' => []]);
-            });
-    }
-
-    private function storeCategoryResults(EvaluationResult $result, Collection $responses): void
-    {
-        $responses->groupBy(fn (EvaluationResponse $response) => $response->evaluationQuestion->question->skill->skill_category_id)
-            ->each(function (Collection $items, int $categoryId) use ($result): void {
-                $score = round((float) $items->avg('score'), 2);
-                CategoryResult::query()->create(['evaluation_result_id' => $result->id, 'skill_category_id' => $categoryId, 'score' => $score, 'level' => $this->level($score), 'strengths' => [], 'opportunities' => []]);
-            });
-    }
-
-    private function level(float $score): string
-    {
-        return match (true) {
-            $score >= 4.5 => 'outstanding',
-            $score >= 3.5 => 'strong',
-            $score >= 2.5 => 'developing',
-            default => 'critical',
-        };
     }
 }

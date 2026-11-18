@@ -1,16 +1,16 @@
 import { escapeHtml as e } from './data/platform';
 
 export { e };
-export const labels = { pending: 'Pendiente', in_progress: 'En progreso', completed: 'Completado', expired: 'Vencido', cancelled: 'Cancelado', initial: 'Inicial', reevaluation: 'Reevaluación', self_report: 'Autorreporte', situational: 'Situacional', situational_judgment: 'Juicio situacional', basic: 'Básico', intermediate: 'Intermedio', advanced: 'Avanzado', critical: 'Crítico', high: 'Alta', medium: 'Media', low: 'Baja', outstanding: 'Sobresaliente', strong: 'Sólido', developing: 'En desarrollo', collaborator: 'Colaborador', human_resources: 'Talento humano', superadmin: 'Administrador', reading: 'Lectura', video: 'Video', exercise: 'Ejercicio' };
+export const labels = { pending: 'Pendiente', in_progress: 'En progreso', completed: 'Completado', expired: 'Vencido', cancelled: 'Cancelado', initial: 'Inicial', reevaluation: 'Reevaluación', self_report: 'Autorreporte', situational: 'Situacional', situational_judgment: 'Juicio situacional', basic: 'Básico', intermediate: 'Intermedio', advanced: 'Avanzado', critical: 'Crítico', high: 'Alta', medium: 'Media', low: 'Baja', outstanding: 'Sobresaliente', strong: 'Sólido', developing: 'En desarrollo', to_develop: 'Por desarrollar', strength: 'Fortaleza', collaborator: 'Colaborador', human_resources: 'Talento humano', superadmin: 'Administrador', reading: 'Lectura', video: 'Video', exercise: 'Ejercicio' };
 export const label = (value) => labels[value] ?? value ?? '—';
-export const percent = (score) => score == null ? null : Math.round(Number(score) * 20);
+export const percent = (score) => score == null ? null : Math.round(Number(score));
 export const date = (value, calendar = false) => value ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeZone: 'America/Bogota' }).format(new Date(calendar || value.length === 10 ? `${value.slice(0, 10)}T12:00:00Z` : value)) : 'Sin fecha';
 export const average = (values) => values.length ? values.reduce((a, b) => a + Number(b), 0) / values.length : null;
-export const color = (value) => value == null ? '#94A3B8' : value >= 70 ? '#16A34A' : value >= 50 ? '#D97706' : '#DC2626';
+export const color = (value) => value == null ? '#94A3B8' : value >= 75 ? '#16A34A' : value >= 50 ? '#D97706' : '#DC2626';
 export const initials = (name) => String(name ?? '').split(' ').filter(Boolean).map((s) => s[0]).slice(0, 2).join('');
 export const identity = (user) => `<div class="flex min-w-0 items-center gap-3"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">${e(initials(user?.name))}</span><span class="min-w-0"><strong class="block break-words text-sm">${e(user?.name ?? 'Sin colaborador')}</strong>${user?.email ? `<span class="block break-all text-xs text-slate-400">${e(user.email)}</span>` : ''}</span></div>`;
 export const badge = (text, tone = 'slate') => `<span class="ws-badge ws-badge--${tone}">${e(label(text))}</span>`;
-export const statusBadge = (status) => badge(status, { completed: 'green', in_progress: 'blue', pending: 'amber', expired: 'red', cancelled: 'slate', critical: 'red', outstanding: 'green', strong: 'green', developing: 'amber', high: 'red', medium: 'amber' }[status] ?? 'slate');
+export const statusBadge = (status) => badge(status, { completed: 'green', in_progress: 'blue', pending: 'amber', expired: 'red', cancelled: 'slate', critical: 'red', outstanding: 'green', strong: 'green', strength: 'green', developing: 'amber', to_develop: 'red', high: 'red', medium: 'amber' }[status] ?? 'slate');
 export const axisBadge = (axis) => badge(axis?.name ?? 'Sin eje', { operational: 'blue', mission: 'green', strategic: 'violet' }[axis?.code] ?? 'slate');
 export const button = (text, action, id = '', primary = false) => `<button type="button" class="${primary ? 'ws-primary' : 'ws-button'}" data-action="${e(action)}" data-id="${e(id)}">${e(text)}</button>`;
 export const link = (text, screen, id = '', primary = false) => `<button type="button" class="${primary ? 'ws-primary' : 'ws-button'}" data-navigate="${e(screen)}" data-id="${e(id)}">${e(text)}</button>`;

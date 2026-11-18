@@ -36,6 +36,7 @@ class User extends Authenticatable
             'hire_date' => 'date',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'consent_accepted_at' => 'datetime',
             'role' => UserRole::class,
         ];
     }

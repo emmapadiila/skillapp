@@ -72,12 +72,15 @@ php artisan db:seed           # cargos base + las tres pruebas (idempotente)
 También puedes cargar **solo** los instrumentos:
 
 ```bash
-php artisan db:seed --class=AssessmentInstrumentSeeder
+php artisan db:seed --class=CategoriaHabilidadSeeder
+php artisan db:seed --class=PruebaOperativaSeeder
+php artisan db:seed --class=PruebaMisionalSeeder
+php artisan db:seed --class=PruebaEstrategicaSeeder
 ```
 
 El seeder es **idempotente**: si lo ejecutas de nuevo, actualiza la misma información y no
 duplica habilidades, preguntas ni opciones (se apoya en `assessments.code`,
-`skills.name` global y `questions.code`).
+`skills.name` global, `questions.code` y la letra de cada opción).
 
 ## 5. Cómo asignar una prueba
 
@@ -123,13 +126,14 @@ y la evaluación se cierra con `POST /api/v1/evaluations/{id}/complete`.
 
 ## 7. Cómo se califica
 
-Se reutilizan las reglas vigentes de `EvaluationService`, sin cambios:
+El cálculo vive en `AssessmentScoringService` (lo invoca `EvaluationService::complete`):
 
-- **Resultado global:** promedio de las respuestas (escala 1–5).
-- **Resultado por habilidad:** promedio de las preguntas de esa habilidad (`skill_results`).
-- **Resultado por categoría:** promedio de las habilidades de esa categoría (`category_results`).
-- **Nivel:** ≥ 4.5 `outstanding`, ≥ 3.5 `strong`, ≥ 2.5 `developing`, < 2.5 `critical`.
-- **Brecha por cargo:** `max(0, required_level − puntuación)` (en el diagnóstico organizacional).
+- **Resultado por habilidad:** promedio de sus ítems (1–5) llevado a 0–100 con `(promedio − 1) / 4 × 100` (`skill_results`).
+- **Resultado por categoría y total:** promedio de las habilidades ponderado con `assessment_skill.weight` (alto = 1.5, medio = 1.0).
+- **Nivel** (`ResultLevel`): < 50 `to_develop` (Por desarrollar), 50 a < 75 `developing` (En desarrollo), ≥ 75 `strength` (Fortaleza).
+- **Brecha por cargo:** `required_level` (1–5) se lleva a 0–100 y la diferencia se expresa en puntos de la escala 1–5 (25 puntos = 1).
+- **Matriz del diagnóstico:** cada celda es el promedio de `category_results` de esa categoría en ese eje.
+- **IA:** `AssessmentAnalyzer` recibe los puntajes por habilidad y categoría; hoy responde `NullAssessmentAnalyzer`.
 
 ## 8. Diagnóstico y planes
 

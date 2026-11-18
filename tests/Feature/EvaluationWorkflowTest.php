@@ -50,8 +50,8 @@ class EvaluationWorkflowTest extends TestCase
         ]);
         $result = $service->complete($evaluation);
 
-        $this->assertSame('5.00', $result->total_score);
-        $this->assertSame('outstanding', $result->level);
+        $this->assertSame('100.00', $result->total_score);
+        $this->assertSame('strength', $result->level);
         $this->assertSame(EvaluationStatus::Completed, $evaluation->refresh()->status);
         $this->assertCount(1, $result->skillResults);
         $this->assertCount(1, $result->categoryResults);
