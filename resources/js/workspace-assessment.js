@@ -93,6 +93,12 @@ function shuffled(items, seed) {
 let unsavedFlow = null;
 // Cada apertura de la prueba es un flujo; uno viejo nunca dibuja sobre la pantalla actual.
 let activeFlow = 0;
+// Estado de guardado por evaluación: sobrevive a «Salir» y reabrir, para no perder ni ocultar cambios sin confirmar.
+const stores = new Map();
+const storeFor = (evaluationId) => {
+    if (!stores.has(evaluationId)) stores.set(evaluationId, { pending: new Map(), failed: new Map(), choices: new Map(), finalizing: false });
+    return stores.get(evaluationId);
+};
 window.addEventListener('beforeunload', (event) => { if (unsavedFlow?.()) { event.preventDefault(); event.returnValue = ''; } });
 
 export async function showEvaluation(ctx, id) {
@@ -100,8 +106,15 @@ export async function showEvaluation(ctx, id) {
     const pageRevision = ctx.pageRevision;
     const isActive = () => flow === activeFlow && ctx.pageRevision === pageRevision;
     const target = id || (await ctx.request('evaluations/start', { method: 'POST' })).id;
-    const evaluation = await ctx.get(`evaluations/${target}`);
+    let evaluation = await ctx.get(`evaluations/${target}`);
     if (!isActive()) return;
+    const store = storeFor(evaluation.id);
+    // Si al salir quedaron guardados en curso, se espera a que terminen y se relee el servidor.
+    if (store.pending.size) {
+        await Promise.allSettled([...store.pending.values()]);
+        evaluation = await ctx.get(`evaluations/${target}`);
+        if (!isActive()) return;
+    }
     if (evaluation.user_id !== ctx.user.id) throw new Error('Solo puedes responder tus propias evaluaciones.');
     if (evaluation.status === 'completed') { ctx.navigate('resultados'); return; }
     const questions = evaluation.questions ?? [];
@@ -110,8 +123,7 @@ export async function showEvaluation(ctx, id) {
     const [likertHelp, situationalHelp] = instructions(evaluation.assessment);
     const answers = new Map((evaluation.responses ?? []).map((r) => [r.evaluation_question_id, r]));
     // Guardado al marcar: una cola por pregunta para que la última elección siempre sea la que queda.
-    const pending = new Map();
-    const failed = new Map();
+    const { pending, failed, choices } = store;
     const hasUnsavedAnswers = () => pending.size > 0 || failed.size > 0;
     unsavedFlow = hasUnsavedAnswers;
     let index = questions.findIndex((q) => !answers.has(q.id));
@@ -124,6 +136,7 @@ export async function showEvaluation(ctx, id) {
     const status = (html, tone = 'text-slate-600') => { const el = isActive() && document.querySelector('#save-status'); if (el) { el.className = `min-h-6 text-sm ${tone}`; el.innerHTML = html; } };
 
     function save(item, value) {
+        choices.set(item.id, value);
         const data = { evaluation_question_id: item.id, ...(isLikert(item) ? { likert_value: value } : { question_option_id: value }) };
         const previous = pending.get(item.id) ?? Promise.resolve();
         const request = previous.catch(() => {}).then(() => ctx.request(`evaluations/${evaluation.id}/responses`, { method: 'POST', data }));
@@ -179,12 +192,14 @@ export async function showEvaluation(ctx, id) {
     function renderQuestion() {
         const item = questions[index]; const q = item.question; const saved = answers.get(item.id);
         const likert = isLikert(item);
-        const selected = failed.get(item.id) ?? (likert ? saved?.likert_value : saved?.question_option_id);
+        // Siempre la última elección local, aunque su guardado siga en curso o haya fallado.
+        const selected = choices.get(item.id) ?? (likert ? saved?.likert_value : saved?.question_option_id);
+        const initialStatus = pending.has(item.id) ? 'Guardando…' : failed.has(item.id) ? '' : saved ? 'Respuesta guardada.' : '';
         const position = `Pregunta ${index + 1} de ${total}`;
         const title = `<h2 data-focus tabindex="-1" class="text-lg font-semibold leading-7 text-slate-900 outline-none sm:text-xl"><span class="sr-only">${position}. </span>${e(q.text)}</h2>`;
         const statement = likert ? title : `<div class="rounded-card border border-brand-200 bg-brand-50 p-4">${title}</div>`;
         const help = (likert ? likertHelp : situationalHelp) || (likert ? 'Marca qué tanto describe tu forma habitual de trabajar.' : 'Elige lo que harías en realidad.');
-        const choices = likert
+        const choiceList = likert
             ? `<div class="grid gap-2 sm:grid-cols-5">${LIKERT.map((text, i) => `<label class="ws-choice group py-3 sm:min-h-32 sm:flex-col sm:justify-start sm:text-center"><input type="radio" name="answer" value="${i + 1}" ${selected === i + 1 ? 'checked' : ''} class="sr-only"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 font-semibold text-slate-800 group-has-checked:bg-brand-600 group-has-checked:text-white" aria-hidden="true">${i + 1}</span><span>${text}</span></label>`).join('')}</div>`
             : `<div class="grid gap-3">${shuffled(q.options ?? [], `${evaluation.id}-${q.id}`).map((opt) => `<label class="ws-choice items-start"><input type="radio" name="answer" value="${opt.id}" ${selected === opt.id ? 'checked' : ''} class="mt-0.5 size-5 shrink-0 accent-brand-600"><span class="leading-6">${e(opt.text)}</span></label>`).join('')}</div>`;
         const last = index === total - 1;
@@ -193,15 +208,15 @@ export async function showEvaluation(ctx, id) {
         if (!show(header(`${position} <span class="font-normal text-slate-600">· ${likert ? 'Afirmación' : 'Situación'}</span>`) + `<form id="evaluation-response-form" class="ws-panel space-y-5" novalidate>
             <fieldset class="space-y-4"><legend class="w-full">${statement}</legend>
                 <details class="text-[0.9375rem] text-slate-700" ${index === firstOfType(q.type) ? 'open' : ''}><summary class="cursor-pointer font-medium text-brand-700">Cómo responder</summary><p class="mt-2 leading-6">${e(help)}</p></details>
-                ${choices}
+                ${choiceList}
             </fieldset>
-            <p id="save-status" role="status" class="min-h-6 text-sm text-slate-600">${failed.has(item.id) ? '' : saved ? 'Respuesta guardada.' : ''}</p>
+            <p id="save-status" role="status" class="min-h-6 text-sm text-slate-600">${initialStatus}</p>
             <div class="ws-test-actions"><button type="button" id="evaluation-prev" class="ws-button" ${index === 0 ? 'disabled' : ''}>${svg('arrowLeft')}Anterior</button><button type="submit" class="ws-primary flex-1 sm:flex-none">${nextLabel}${reviewing ? '' : svg('arrowRight')}</button></div>
         </form>`)) return;
 
         const form = document.querySelector('#evaluation-response-form');
         form.addEventListener('change', (event) => {
-            if (event.target.name !== 'answer') return;
+            if (event.target.name !== 'answer' || store.finalizing) return;
             status('Guardando…');
             save(item, Number(event.target.value));
         });
@@ -219,6 +234,8 @@ export async function showEvaluation(ctx, id) {
                 submit.disabled = false;
                 return;
             }
+            // Si mientras se esperaba la persona ya cambió de pregunta, este formulario viejo no mueve nada.
+            if (!form.isConnected) return;
             if (reviewing || last) renderReview(); else { index++; renderQuestion(); }
         });
     }
@@ -245,21 +262,42 @@ export async function showEvaluation(ctx, id) {
 
     function confirmSubmit() {
         ctx.modal('¿Enviar la prueba?', `<div class="space-y-5"><p class="text-[0.9375rem] leading-6 text-slate-700">Después de enviarla no podrás cambiar tus respuestas y se calculará tu resultado.</p><div id="confirm-feedback" aria-live="polite"></div><div class="flex flex-wrap justify-end gap-3"><button type="button" class="ws-button" data-dialog-close>Cancelar</button><button type="button" class="ws-primary" id="evaluation-confirm">Sí, enviar</button></div></div>`);
+        const dialog = document.querySelector('#workspace-dialog');
         const confirm = document.querySelector('#evaluation-confirm');
         const feedback = document.querySelector('#confirm-feedback');
+        const closers = [...dialog.querySelectorAll('[data-dialog-close]')];
+        const blockEscape = (event) => event.preventDefault();
+        // El diálogo modal deja inerte el resto de la página: mientras siga abierto nadie puede cambiar respuestas.
+        const keepOpen = () => { if (store.finalizing && isActive()) dialog.showModal(); };
+        const lock = (locked) => {
+            store.finalizing = locked;
+            closers.forEach((el) => { el.disabled = locked; });
+            if (locked) { dialog.addEventListener('cancel', blockEscape); dialog.addEventListener('close', keepOpen); }
+            else { dialog.removeEventListener('cancel', blockEscape); dialog.removeEventListener('close', keepOpen); }
+        };
         confirm.addEventListener('click', async () => {
             confirm.disabled = true; confirm.textContent = 'Enviando…';
+            lock(true);
             try {
                 // Nunca enviar con un cambio sin guardar: el servidor tendría la respuesta anterior.
                 if (await flushAll()) throw new Error('Hay respuestas que no se pudieron guardar. Revisa tu conexión y vuelve a intentarlo.');
-                await ctx.request(`evaluations/${evaluation.id}/complete`, { method: 'POST' });
+                try {
+                    await ctx.request(`evaluations/${evaluation.id}/complete`, { method: 'POST' });
+                } catch (error) {
+                    // Respuesta incierta (p. ej. se cortó la red): se pregunta al servidor si la prueba quedó enviada.
+                    const current = await ctx.get(`evaluations/${evaluation.id}`).catch(() => null);
+                    if (current?.status !== 'completed') throw error;
+                }
+                lock(false);
+                stores.delete(evaluation.id);
                 if (unsavedFlow === hasUnsavedAnswers) unsavedFlow = null;
-                if (!isActive()) return;
                 ctx.close();
+                if (!isActive()) return;
                 if (!show(`<section class="ws-panel space-y-4 text-center" aria-labelledby="done-title"><span class="mx-auto grid size-16 place-items-center rounded-full bg-success-100 text-success-700" aria-hidden="true">${svg('check').replace('size-4', 'size-8')}</span><h2 id="done-title" class="text-2xl font-bold outline-none" data-focus tabindex="-1">¡Gracias! Tu prueba quedó enviada</h2><p class="text-[0.9375rem] leading-6 text-slate-700">Tus respuestas se guardaron y tu resultado ya está calculado. En él verás tus fortalezas y lo que puedes desarrollar.</p><button type="button" class="ws-primary" id="evaluation-results">Ver mi resultado</button></section>`)) return;
                 document.querySelector('#evaluation-results').addEventListener('click', () => ctx.refresh('resultados'));
             } catch (error) {
-                if (!isActive()) return;
+                lock(false);
+                if (!isActive()) { ctx.close(); return; }
                 feedback.innerHTML = `<div class="ws-alert ws-alert--danger">${formErrors(error)}</div>`;
                 confirm.disabled = false; confirm.textContent = 'Sí, enviar';
             }
