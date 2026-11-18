@@ -40,6 +40,9 @@ const paths = {
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     search: '<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',
     close: '<path d="M6 6l12 12M18 6 6 18"/>',
+    arrowLeft: '<path d="M19 12H5m6-6-6 6 6 6"/>',
+    arrowRight: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
+    check: '<path d="m5 12 5 5 9-10"/>',
 };
 export const svg = (name) => `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] ?? paths.chart}</svg>`;
 export function icons() { document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = svg(el.dataset.icon); }); }

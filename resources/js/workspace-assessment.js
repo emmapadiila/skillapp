@@ -1,4 +1,5 @@
-import { e, date, empty, progress, formErrors } from './workspace-ui';
+import { e, date, empty, progress, formErrors, svg } from './workspace-ui';
+import { connectionMessage } from './data/platform';
 
 // Escala del anexo (1–5). Se muestran todas las etiquetas, no solo los extremos.
 const LIKERT = ['Totalmente en desacuerdo', 'En desacuerdo', 'Ni de acuerdo ni en desacuerdo', 'De acuerdo', 'Totalmente de acuerdo'];
@@ -20,7 +21,7 @@ export function assessmentScreen(ctx) {
     const assessment = ctx.records('assessments').find((a) => a.id === open?.assessment_id) ?? open?.assessment ?? ctx.records('assessments')[0];
 
     if (!open && completed) {
-        return `<div class="mx-auto max-w-2xl">${confirmation}<article class="ws-panel space-y-4 text-center"><span class="mx-auto grid size-14 place-items-center rounded-full bg-success-100 text-2xl text-success-700" aria-hidden="true">✓</span><h2 class="text-xl font-bold">Ya completaste tu prueba</h2><p class="text-sm text-slate-600">La enviaste el ${e(date(completed.completed_at))}. Talento Humano programará tu próxima reevaluación.</p><button type="button" class="ws-primary" data-navigate="resultados">Ver mi resultado</button></article></div>`;
+        return `<div class="mx-auto max-w-2xl">${confirmation}<article class="ws-panel space-y-4 text-center"><span class="mx-auto grid size-14 place-items-center rounded-full bg-success-100 text-success-700" aria-hidden="true">${svg('check').replace('size-4', 'size-7')}</span><h2 class="text-xl font-bold">Ya completaste tu prueba</h2><p class="text-sm text-slate-600">La enviaste el ${e(date(completed.completed_at))}. Talento Humano programará tu próxima reevaluación.</p><button type="button" class="ws-primary" data-navigate="resultados">Ver mi resultado</button></article></div>`;
     }
     if (!assessment && !open) return `<div class="mx-auto max-w-2xl">${confirmation}</div>` + empty('Todavía no tienes una prueba disponible', 'Tu cargo no tiene una prueba asociada. Consulta con el área de Talento Humano.');
 
@@ -88,7 +89,16 @@ function shuffled(items, seed) {
     return result;
 }
 
+// Un solo aviso al cerrar la pestaña mientras haya respuestas guardándose.
+let unsavedFlow = null;
+// Cada apertura de la prueba es un flujo; uno viejo nunca dibuja sobre la pantalla actual.
+let activeFlow = 0;
+window.addEventListener('beforeunload', (event) => { if (unsavedFlow?.()) { event.preventDefault(); event.returnValue = ''; } });
+
 export async function showEvaluation(ctx, id) {
+    const flow = ++activeFlow;
+    const visit = ctx.navigation;
+    const isActive = () => flow === activeFlow && ctx.navigation === visit;
     const target = id || (await ctx.request('evaluations/start', { method: 'POST' })).id;
     const evaluation = await ctx.get(`evaluations/${target}`);
     if (evaluation.user_id !== ctx.user.id) throw new Error('Solo puedes responder tus propias evaluaciones.');
@@ -98,85 +108,151 @@ export async function showEvaluation(ctx, id) {
 
     const [likertHelp, situationalHelp] = instructions(evaluation.assessment);
     const answers = new Map((evaluation.responses ?? []).map((r) => [r.evaluation_question_id, r]));
+    // Guardado al marcar: una cola por pregunta para que la última elección siempre sea la que queda.
+    const pending = new Map();
+    const failed = new Map();
+    unsavedFlow = () => pending.size > 0 || failed.size > 0;
     let index = questions.findIndex((q) => !answers.has(q.id));
     if (index < 0) index = questions.length - 1;
-    let busy = false;
+    let reviewing = false;
     const total = questions.length;
+    const isLikert = (item) => item.question.type === 'self_report';
+    const firstOfType = (type) => questions.findIndex((item) => item.question.type === type);
 
-    const header = () => `<div class="ws-panel space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><p class="text-sm font-medium text-slate-700">${e(evaluation.assessment?.name ?? 'Prueba de habilidades blandas')}</p><button type="button" class="ws-link text-sm" data-navigate="inicio">Salir · tu avance queda guardado</button></div>${progress(answers.size / total * 100, 'var(--color-brand-600)').replace('aria-label="Progreso"', `aria-label="${answers.size} de ${total} preguntas respondidas"`)}<p class="text-xs text-slate-600">${answers.size} de ${total} respondidas</p></div>`;
+    const status = (html, tone = 'text-slate-600') => { const el = document.querySelector('#save-status'); if (el) { el.className = `min-h-6 text-sm ${tone}`; el.innerHTML = html; } };
 
+    function save(item, value) {
+        const data = { evaluation_question_id: item.id, ...(isLikert(item) ? { likert_value: value } : { question_option_id: value }) };
+        const previous = pending.get(item.id) ?? Promise.resolve();
+        const request = previous.catch(() => {}).then(() => ctx.request(`evaluations/${evaluation.id}/responses`, { method: 'POST', data }));
+        pending.set(item.id, request);
+        failed.delete(item.id);
+        request.then((response) => {
+            if (pending.get(item.id) !== request) return;
+            answers.set(item.id, response);
+            pending.delete(item.id);
+            if (questions[index] === item) { status('Respuesta guardada.'); updateProgress(); }
+        }, () => {
+            if (pending.get(item.id) !== request) return;
+            pending.delete(item.id);
+            failed.set(item.id, value);
+            if (questions[index] === item) status('No se pudo guardar tu respuesta. Revisa tu conexión y pulsa "Siguiente" para intentarlo de nuevo.', 'font-medium text-danger-700');
+        });
+        return request;
+    }
+
+    // Garantiza que la respuesta de esta pregunta quedó guardada antes de avanzar.
+    async function ensureSaved(item) {
+        if (pending.has(item.id)) { try { await pending.get(item.id); } catch { /* se reintenta abajo */ } }
+        if (failed.has(item.id)) await save(item, failed.get(item.id));
+    }
+
+    // Antes de revisar o enviar: espera lo pendiente y reintenta cada cambio que no se guardó.
+    async function flushAll() {
+        await Promise.allSettled([...pending.values()]);
+        await Promise.allSettled([...failed.keys()].map((itemId) => ensureSaved(questions.find((item) => item.id === itemId))));
+        return failed.size;
+    }
+
+    const progressBar = () => progress(answers.size / total * 100, 'var(--color-brand-600)', false).replace(/aria-label="[^"]*"/, `aria-label="${answers.size} de ${total} preguntas respondidas"`);
+    const updateProgress = () => { const el = document.querySelector('#test-progress'); if (el) el.innerHTML = progressBar(); };
+    const header = (label) => `<div class="space-y-2"><div class="flex items-center justify-between gap-3"><p class="text-sm font-semibold text-slate-900">${label}</p><button type="button" class="ws-link text-sm" data-navigate="inicio">Salir<span class="sr-only"> de la prueba; tu avance queda guardado</span></button></div><div id="test-progress">${progressBar()}</div></div>`;
+
+    // Devuelve false si la persona ya salió de la prueba: así una espera terminada tarde no la reabre.
     function show(html) {
-        page().innerHTML = `<div class="mx-auto max-w-2xl space-y-4">${html}</div>`;
+        if (!isActive()) return false;
+        page().innerHTML = `<div class="mx-auto max-w-2xl space-y-4 pb-24 sm:pb-0">${html}</div>`;
         window.scrollTo({ top: 0 });
         page().querySelector('[data-focus]')?.focus({ preventScroll: true });
+        return true;
+    }
+
+    function answerLabel(item) {
+        const response = answers.get(item.id);
+        if (!response) return null;
+        if (isLikert(item)) return `${response.likert_value} · ${LIKERT[response.likert_value - 1]}`;
+        return item.question.options?.find((o) => o.id === response.question_option_id)?.text ?? 'Respuesta guardada';
     }
 
     function renderQuestion() {
         const item = questions[index]; const q = item.question; const saved = answers.get(item.id);
-        const likert = q.type === 'self_report';
-        const statement = likert
-            ? `<p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Afirmación</p><p class="mt-1 text-lg font-semibold leading-7 text-slate-900">${e(q.text)}</p>`
-            : `<div class="rounded-card border border-brand-200 bg-brand-50 p-4"><p class="text-xs font-semibold uppercase tracking-wide text-brand-800">Situación</p><p class="mt-1 text-base font-semibold leading-7 text-slate-900">${e(q.text)}</p></div>`;
+        const likert = isLikert(item);
+        const selected = failed.get(item.id) ?? (likert ? saved?.likert_value : saved?.question_option_id);
+        const position = `Pregunta ${index + 1} de ${total}`;
+        const title = `<h2 data-focus tabindex="-1" class="text-lg font-semibold leading-7 text-slate-900 outline-none sm:text-xl"><span class="sr-only">${position}. </span>${e(q.text)}</h2>`;
+        const statement = likert ? title : `<div class="rounded-card border border-brand-200 bg-brand-50 p-4">${title}</div>`;
+        const help = (likert ? likertHelp : situationalHelp) || (likert ? 'Marca qué tanto describe tu forma habitual de trabajar.' : 'Elige lo que harías en realidad.');
         const choices = likert
-            ? `<div class="grid gap-2 sm:grid-cols-5">${LIKERT.map((text, i) => `<label class="ws-choice sm:flex-col sm:justify-start sm:text-center"><input type="radio" name="answer" value="${i + 1}" required ${saved?.likert_value === i + 1 ? 'checked' : ''} class="size-5 shrink-0 accent-brand-600"><span><strong class="block text-base">${i + 1}</strong><span class="text-slate-700">${text}</span></span></label>`).join('')}</div>`
-            : `<div class="grid gap-3">${shuffled(q.options ?? [], `${evaluation.id}-${q.id}`).map((opt) => `<label class="ws-choice items-start"><input type="radio" name="answer" value="${opt.id}" required ${saved?.question_option_id === opt.id ? 'checked' : ''} class="mt-0.5 size-5 shrink-0 accent-brand-600"><span class="leading-6">${e(opt.text)}</span></label>`).join('')}</div>`;
+            ? `<div class="grid gap-2 sm:grid-cols-5">${LIKERT.map((text, i) => `<label class="ws-choice group py-3 sm:min-h-32 sm:flex-col sm:justify-start sm:text-center"><input type="radio" name="answer" value="${i + 1}" ${selected === i + 1 ? 'checked' : ''} class="sr-only"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 font-semibold text-slate-800 group-has-checked:bg-brand-600 group-has-checked:text-white" aria-hidden="true">${i + 1}</span><span>${text}</span></label>`).join('')}</div>`
+            : `<div class="grid gap-3">${shuffled(q.options ?? [], `${evaluation.id}-${q.id}`).map((opt) => `<label class="ws-choice items-start"><input type="radio" name="answer" value="${opt.id}" ${selected === opt.id ? 'checked' : ''} class="mt-0.5 size-5 shrink-0 accent-brand-600"><span class="leading-6">${e(opt.text)}</span></label>`).join('')}</div>`;
         const last = index === total - 1;
+        const nextLabel = reviewing ? 'Volver a la revisión' : last ? 'Revisar respuestas' : 'Siguiente';
 
-        show(header() + `<form id="evaluation-response-form" class="ws-panel space-y-5" novalidate>
-            <p class="text-sm font-semibold text-brand-700" data-focus tabindex="-1">Pregunta ${index + 1} de ${total}</p>
+        if (!show(header(`${position} <span class="font-normal text-slate-600">· ${likert ? 'Afirmación' : 'Situación'}</span>`) + `<form id="evaluation-response-form" class="ws-panel space-y-5" novalidate>
             <fieldset class="space-y-4"><legend class="w-full">${statement}</legend>
-                <p class="text-sm text-slate-600">${e((likert ? likertHelp : situationalHelp) || (likert ? 'Marca qué tanto describe tu forma habitual de trabajar.' : 'Elige lo que harías en realidad.'))}</p>
+                <details class="text-[0.9375rem] text-slate-700" ${index === firstOfType(q.type) ? 'open' : ''}><summary class="cursor-pointer font-medium text-brand-700">Cómo responder</summary><p class="mt-2 leading-6">${e(help)}</p></details>
                 ${choices}
             </fieldset>
-            <div id="evaluation-feedback" aria-live="polite"></div>
-            <div class="flex flex-wrap justify-between gap-3"><button type="button" id="evaluation-prev" class="ws-button" ${index === 0 ? 'disabled' : ''}>← Anterior</button><button type="submit" class="ws-primary">${last ? 'Revisar respuestas' : 'Siguiente →'}</button></div>
-        </form>`);
+            <p id="save-status" role="status" class="min-h-6 text-sm text-slate-600">${failed.has(item.id) ? '' : saved ? 'Respuesta guardada.' : ''}</p>
+            <div class="ws-test-actions"><button type="button" id="evaluation-prev" class="ws-button" ${index === 0 ? 'disabled' : ''}>${svg('arrowLeft')}Anterior</button><button type="submit" class="ws-primary flex-1 sm:flex-none">${nextLabel}${reviewing ? '' : svg('arrowRight')}</button></div>
+        </form>`)) return;
 
         const form = document.querySelector('#evaluation-response-form');
-        document.querySelector('#evaluation-prev').addEventListener('click', () => { if (!busy) { index = Math.max(0, index - 1); renderQuestion(); } });
+        form.addEventListener('change', (event) => {
+            if (event.target.name !== 'answer') return;
+            status('Guardando…');
+            save(item, Number(event.target.value));
+        });
+        document.querySelector('#evaluation-prev').addEventListener('click', () => { index = Math.max(0, index - 1); renderQuestion(); });
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
-            if (busy) return;
-            const value = Number(new FormData(form).get('answer'));
-            if (!value) { form.querySelector('#evaluation-feedback').innerHTML = '<p class="text-sm font-medium text-danger-700" role="alert">Elige una respuesta para continuar.</p>'; return; }
-            const unchanged = likert ? saved?.likert_value === value : saved?.question_option_id === value;
-            busy = true; const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
+            const submit = form.querySelector('[type="submit"]');
+            if (submit.disabled) return;
+            if (!new FormData(form).get('answer')) { status('Elige una respuesta para continuar.', 'font-medium text-danger-700'); return; }
+            submit.disabled = true;
             try {
-                if (!unchanged) {
-                    const data = { evaluation_question_id: item.id, ...(likert ? { likert_value: value } : { question_option_id: value }) };
-                    answers.set(item.id, await ctx.request(`evaluations/${evaluation.id}/responses`, { method: 'POST', data }));
-                }
-                busy = false;
-                if (last) renderReview(); else { index++; renderQuestion(); }
+                await ensureSaved(item);
             } catch (error) {
-                form.querySelector('#evaluation-feedback').innerHTML = `<div class="ws-alert ws-alert--danger" role="alert">${formErrors(error)}</div>`;
-                busy = false; submit.disabled = false;
+                status(`No se pudo guardar tu respuesta. ${e(connectionMessage(error))}`, 'font-medium text-danger-700');
+                submit.disabled = false;
+                return;
             }
+            if (reviewing || last) renderReview(); else { index++; renderQuestion(); }
         });
     }
 
-    function renderReview() {
-        const missing = questions.map((q, i) => (answers.has(q.id) ? null : i)).filter((i) => i !== null);
-        show(header() + `<section class="ws-panel space-y-5" aria-labelledby="review-title">
-            <h2 id="review-title" class="text-xl font-bold" data-focus tabindex="-1">Revisa antes de enviar</h2>
-            ${missing.length
-                ? `<div class="ws-alert ws-alert--warning"><p class="font-semibold">Te faltan ${missing.length} ${missing.length === 1 ? 'pregunta' : 'preguntas'}.</p><div class="mt-3 flex flex-wrap gap-2">${missing.map((i) => `<button type="button" class="ws-button" data-goto="${i}">Pregunta ${i + 1}</button>`).join('')}</div></div>`
-                : `<p class="text-sm leading-6 text-slate-700">Respondiste las ${total} preguntas. Puedes volver para cambiar alguna respuesta. Una vez enviada, la prueba ya no se puede modificar.</p>`}
-            <div class="flex flex-wrap justify-between gap-3"><button type="button" class="ws-button" data-goto="${total - 1}">← Volver a las preguntas</button><button type="button" class="ws-primary" id="evaluation-submit" ${missing.length ? 'disabled' : ''}>Enviar prueba</button></div>
-        </section>`);
+    async function renderReview() {
+        reviewing = true;
+        const unsaved = await flushAll();
+        const missing = questions.filter((item) => !answers.has(item.id)).length;
+        const rows = questions.map((item, i) => {
+            const answer = answerLabel(item);
+            const lost = failed.has(item.id);
+            const detail = lost ? 'Tu último cambio no se guardó.' : answer ?? 'Sin responder';
+            return `<li class="flex items-start gap-3 py-3"><span class="w-6 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-slate-600">${i + 1}</span><div class="min-w-0 flex-1"><p class="line-clamp-2 text-[0.9375rem] leading-6 text-slate-900">${e(item.question.text)}</p><p class="mt-1 text-sm ${answer && !lost ? 'text-slate-700' : 'font-medium text-warning-700'}">${e(detail)}</p></div><button type="button" class="ws-button" data-goto="${i}">${answer && !lost ? 'Cambiar' : 'Responder'}<span class="sr-only"> la pregunta ${i + 1}</span></button></li>`;
+        }).join('');
+        if (!show(header('Revisión de respuestas') + `<section class="ws-panel space-y-4" aria-labelledby="review-title">
+            <h2 id="review-title" class="text-xl font-bold outline-none" data-focus tabindex="-1">Revisa antes de enviar</h2>
+            <p class="text-[0.9375rem] leading-6 text-slate-700">${unsaved ? `${unsaved === 1 ? 'Una respuesta no se pudo guardar' : `${unsaved} respuestas no se pudieron guardar`}. Revisa tu conexión y vuelve a marcarlas antes de enviar.` : missing ? `Te ${missing === 1 ? 'falta 1 pregunta' : `faltan ${missing} preguntas`} por responder.` : `Respondiste las ${total} preguntas. Una vez enviada, la prueba ya no se puede modificar.`}</p>
+            <ol class="divide-y divide-slate-200 border-y border-slate-200">${rows}</ol>
+            <div class="ws-test-actions"><button type="button" class="ws-button" data-goto="${total - 1}">${svg('arrowLeft')}Preguntas</button><button type="button" class="ws-primary flex-1 sm:flex-none" id="evaluation-submit" ${missing || unsaved ? 'disabled' : ''}>Enviar prueba</button></div>
+        </section>`)) return;
         page().querySelectorAll('[data-goto]').forEach((el) => el.addEventListener('click', () => { index = Number(el.dataset.goto); renderQuestion(); }));
         document.querySelector('#evaluation-submit').addEventListener('click', confirmSubmit);
     }
 
     function confirmSubmit() {
-        ctx.modal('¿Enviar la prueba?', `<div class="space-y-5"><p class="text-sm leading-6 text-slate-700">Después de enviarla no podrás cambiar tus respuestas y se calculará tu resultado.</p><div id="confirm-feedback" aria-live="polite"></div><div class="flex flex-wrap justify-end gap-3"><button type="button" class="ws-button" data-dialog-close>Cancelar</button><button type="button" class="ws-primary" id="evaluation-confirm">Sí, enviar</button></div></div>`);
+        ctx.modal('¿Enviar la prueba?', `<div class="space-y-5"><p class="text-[0.9375rem] leading-6 text-slate-700">Después de enviarla no podrás cambiar tus respuestas y se calculará tu resultado.</p><div id="confirm-feedback" aria-live="polite"></div><div class="flex flex-wrap justify-end gap-3"><button type="button" class="ws-button" data-dialog-close>Cancelar</button><button type="button" class="ws-primary" id="evaluation-confirm">Sí, enviar</button></div></div>`);
         const confirm = document.querySelector('#evaluation-confirm');
         confirm.addEventListener('click', async () => {
             confirm.disabled = true; confirm.textContent = 'Enviando…';
             try {
+                // Nunca enviar con un cambio sin guardar: el servidor tendría la respuesta anterior.
+                if (await flushAll()) throw new Error('Hay respuestas que no se pudieron guardar. Revisa tu conexión y vuelve a intentarlo.');
                 await ctx.request(`evaluations/${evaluation.id}/complete`, { method: 'POST' });
+                unsavedFlow = null;
                 ctx.close();
-                show(`<section class="ws-panel space-y-4 text-center" aria-labelledby="done-title"><span class="mx-auto grid size-16 place-items-center rounded-full bg-success-100 text-3xl text-success-700" aria-hidden="true">✓</span><h2 id="done-title" class="text-2xl font-bold" data-focus tabindex="-1">¡Gracias! Tu prueba quedó enviada</h2><p class="text-sm leading-6 text-slate-700">Tus respuestas se guardaron y tu resultado ya está calculado. En él verás tus fortalezas y lo que puedes desarrollar.</p><button type="button" class="ws-primary" id="evaluation-results">Ver mi resultado</button></section>`);
+                if (!show(`<section class="ws-panel space-y-4 text-center" aria-labelledby="done-title"><span class="mx-auto grid size-16 place-items-center rounded-full bg-success-100 text-success-700" aria-hidden="true">${svg('check').replace('size-4', 'size-8')}</span><h2 id="done-title" class="text-2xl font-bold outline-none" data-focus tabindex="-1">¡Gracias! Tu prueba quedó enviada</h2><p class="text-[0.9375rem] leading-6 text-slate-700">Tus respuestas se guardaron y tu resultado ya está calculado. En él verás tus fortalezas y lo que puedes desarrollar.</p><button type="button" class="ws-primary" id="evaluation-results">Ver mi resultado</button></section>`)) return;
                 document.querySelector('#evaluation-results').addEventListener('click', () => ctx.refresh('resultados'));
             } catch (error) {
                 document.querySelector('#confirm-feedback').innerHTML = `<div class="ws-alert ws-alert--danger">${formErrors(error)}</div>`;

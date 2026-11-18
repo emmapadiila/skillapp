@@ -97,6 +97,8 @@ if (root) {
 
     async function load(force = false) {
         const current = ++generation;
+        // Toda carga de pantalla es una navegación: los flujos abiertos antes ya no deben dibujar.
+        ctx.navigation = generation;
         if (force) cache.clear();
         page.setAttribute('aria-busy', 'true');
         page.innerHTML = `<div role="status" class="space-y-4"><p class="text-sm text-slate-500">Cargando ${e(titles[ctx.screen])}…</p><div class="grid grid-cols-2 gap-4 lg:grid-cols-4">${Array.from({ length: 4 }, () => '<div class="h-28 animate-pulse rounded-xl bg-slate-200/60"></div>').join('')}</div><div class="h-64 animate-pulse rounded-xl bg-slate-200/60"></div></div>`;
