@@ -93,7 +93,7 @@ Errores que devuelve:
 | Inicio / sesión | `/`, `/login`, `/logout`, `/session/refresh` | público / autenticado |
 | Personal | `/mi-espacio`, `/mi-perfil`, `/notificaciones` | autenticado |
 | Evaluación personal | `/mi-evaluacion`, `/mi-resultados`, `/mi-plan`, `/mi-progreso` | autenticado |
-| Gestión | `/dashboard`, `/colaboradores`, `/evaluaciones`, `/habilidades`, `/preguntas`, `/cargos`, `/diagnostico-organizacional`, `/mapa-calor`, `/brechas`, `/recomendaciones`, `/planes`, `/seguimiento`, `/reportes`, `/areas` | `superadmin`, `human_resources` |
+| Gestión | `/dashboard` (redirige al tablero estratégico), `/tablero-operativo`, `/tablero-misional`, `/tablero-estrategico`, `/colaboradores`, `/evaluaciones`, `/habilidades`, `/preguntas`, `/cargos`, `/diagnostico-organizacional`, `/brechas`, `/recomendaciones`, `/planes`, `/seguimiento`, `/reportes`, `/areas` | `superadmin`, `human_resources` |
 | Empresas | `/empresas` | `superadmin` |
 
 Todas las vistas de gestión usan la misma plantilla `workspace.blade.php`, parametrizada por
