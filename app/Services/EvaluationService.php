@@ -200,12 +200,19 @@ class EvaluationService
             $score = $option->score;
         }
 
-        return DB::transaction(function () use ($evaluation, $evaluationQuestion, $user, $optionId, $likert, $score): EvaluationResponse {
-            // Mismo bloqueo de fila que complete(): un guardado no puede colarse después de calificar.
+        $response = DB::transaction(function () use ($evaluation, $evaluationQuestion, $user, $optionId, $likert, $score): ?EvaluationResponse {
+            // Mismo bloqueo de fila que complete(): estado y vencimiento se validan bajo el bloqueo.
             $locked = Evaluation::query()->lockForUpdate()->findOrFail($evaluation->id);
 
             if ($locked->status === EvaluationStatus::Completed) {
                 throw ValidationException::withMessages(['evaluation' => 'La evaluación ya fue completada y es inmutable.']);
+            }
+
+            // Se marca vencida y se confirma la transacción; el error se lanza fuera para no deshacer la marca.
+            if ($locked->due_at->isPast()) {
+                $locked->update(['status' => EvaluationStatus::Expired]);
+
+                return null;
             }
 
             if ($locked->status === EvaluationStatus::Pending) {
@@ -217,6 +224,12 @@ class EvaluationService
                 ['user_id' => $user->id, 'question_option_id' => $optionId, 'likert_value' => $likert, 'score' => $score, 'answered_at' => now()],
             );
         });
+
+        if ($response === null) {
+            throw ValidationException::withMessages(['evaluation' => 'La evaluación está vencida.']);
+        }
+
+        return $response;
     }
 
     public function complete(Evaluation $evaluation): EvaluationResult
