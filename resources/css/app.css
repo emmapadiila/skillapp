@@ -142,6 +142,8 @@
     /* Menos movimiento, no cero: se conserva el fundido y se quitan desplazamiento y escala. */
     .ws-enter { animation-name: ws-fade; }
     .ws-choice:active { transform: none; }
+    /* La regla global con * no alcanza este pseudoelemento. */
+    .ws-progress::-webkit-progress-value { transition: none; }
 }
 
 /* Fuera de las capas para ganarle a la utilidad -translate-x-full, que en Tailwind 4 usa la propiedad translate. */

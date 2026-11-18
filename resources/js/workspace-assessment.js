@@ -209,8 +209,8 @@ export async function showEvaluation(ctx, id) {
         const last = index === total - 1;
         const nextLabel = reviewing ? 'Volver a la revisión' : last ? 'Revisar respuestas' : 'Siguiente';
 
-        if (!show(header(`${position} <span class="font-normal text-slate-600">· ${likert ? 'Afirmación' : 'Situación'}</span>`) + `<form id="evaluation-response-form" class="ws-panel ws-enter space-y-5" novalidate>
-            <fieldset class="space-y-4"><legend class="w-full">${statement}</legend>
+        if (!show(header(`${position} <span class="font-normal text-slate-600">· ${likert ? 'Afirmación' : 'Situación'}</span>`) + `<form id="evaluation-response-form" class="ws-panel space-y-5" novalidate>
+            <fieldset class="ws-enter space-y-4"><legend class="w-full">${statement}</legend>
                 <details class="text-[0.9375rem] text-slate-700" ${index === firstOfType(q.type) ? 'open' : ''}><summary class="cursor-pointer font-medium text-brand-700">Cómo responder</summary><p class="mt-2 leading-6">${e(help)}</p></details>
                 ${choiceList}
             </fieldset>
@@ -265,10 +265,10 @@ export async function showEvaluation(ctx, id) {
             const detail = lost ? 'Tu último cambio no se guardó.' : answer ?? 'Sin responder';
             return `<li class="flex items-start gap-3 py-3"><span class="w-6 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-slate-600">${i + 1}</span><div class="min-w-0 flex-1"><p class="line-clamp-2 text-[0.9375rem] leading-6 text-slate-900">${e(item.question.text)}</p><p class="mt-1 text-sm ${answer && !lost ? 'text-slate-700' : 'font-medium text-warning-700'}">${e(detail)}</p></div><button type="button" class="ws-button" data-goto="${i}">${answer && !lost ? 'Cambiar' : 'Responder'}<span class="sr-only"> la pregunta ${i + 1}</span></button></li>`;
         }).join('');
-        if (!show(header('Revisión de respuestas') + `<section class="ws-panel ws-enter space-y-4" aria-labelledby="review-title">
+        if (!show(header('Revisión de respuestas') + `<section class="ws-panel space-y-4" aria-labelledby="review-title">
             <h2 id="review-title" class="text-xl font-bold outline-none" data-focus tabindex="-1">Revisa antes de enviar</h2>
             <p class="text-[0.9375rem] leading-6 text-slate-700">${unsaved ? `${unsaved === 1 ? 'Una respuesta no se pudo guardar' : `${unsaved} respuestas no se pudieron guardar`}. Revisa tu conexión y vuelve a marcarlas antes de enviar.` : missing ? `Te ${missing === 1 ? 'falta 1 pregunta' : `faltan ${missing} preguntas`} por responder.` : `Respondiste las ${total} preguntas. Una vez enviada, la prueba ya no se puede modificar.`}</p>
-            <ol class="divide-y divide-slate-200 border-y border-slate-200">${rows}</ol>
+            <ol class="ws-enter divide-y divide-slate-200 border-y border-slate-200">${rows}</ol>
             <div class="ws-test-actions"><button type="button" class="ws-button" data-goto="${total - 1}">${svg('arrowLeft')}Preguntas</button><button type="button" class="ws-primary flex-1 sm:flex-none" id="evaluation-submit" ${missing || unsaved ? 'disabled' : ''}>Enviar prueba</button></div>
         </section>`)) return;
         page().querySelectorAll('[data-goto]').forEach((el) => el.addEventListener('click', () => { index = Number(el.dataset.goto); renderQuestion(); }));
