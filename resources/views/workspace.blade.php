@@ -54,7 +54,7 @@
                 <span><span class="block text-sm font-semibold text-white">SkillDiagnóstico</span><span class="text-xs font-medium text-brand-400">● IA</span></span>
             </a>
             <button id="sidebar-close" class="absolute right-2 top-2 rounded-md p-1 text-white lg:hidden" aria-label="Cerrar menú">×</button>
-            <p class="mx-3 mt-3 rounded-lg bg-brand-700/15 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-brand-400">Vista {{ $collaborator ? 'colaborador' : 'administrador' }}</p>
+            <p class="mx-3 mt-3 rounded-lg bg-brand-700/15 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-brand-200">Vista {{ $collaborator ? 'colaborador' : 'administrador' }}</p>
             <nav class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
                 @foreach ($navigation as [$key, $label, $route, $icon])
                     <a href="{{ route($route) }}" data-screen-link="{{ $key }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/5 hover:text-white">
@@ -65,7 +65,7 @@
             <div class="border-t border-white/10 p-3">
                 <a href="{{ route('web.profile') }}" data-screen-link="perfil" class="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-white/5">
                     <span data-user-initials class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
-                    <span class="min-w-0 flex-1"><span data-user-name class="block truncate text-xs font-medium text-white">{{ auth()->user()->name }}</span><span class="block text-xs text-slate-500">{{ $collaborator ? 'Colaborador' : 'Talento humano' }}</span></span>
+                    <span class="min-w-0 flex-1"><span data-user-name class="block truncate text-xs font-medium text-white">{{ auth()->user()->name }}</span><span class="block text-xs text-slate-400">{{ $collaborator ? 'Colaborador' : 'Talento humano' }}</span></span>
                     <span data-icon="user" class="size-4 shrink-0" aria-hidden="true"></span>
                 </a>
                 <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-white/5 hover:text-white">Cerrar sesión</button></form>
