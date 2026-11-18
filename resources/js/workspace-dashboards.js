@@ -1,9 +1,9 @@
-import { e, date, empty, panel, progress, color, kpis, bars, table, statusBadge, badge, button, label, options } from './workspace-ui';
+import { e, date, formatScore, empty, panel, scoreProgress, levelColor, kpis, bars, table, statusBadge, badge, button, label, options } from './workspace-ui';
 
 export const DASHBOARD_SCREENS = { 'tablero-operativo': 'operational', 'tablero-misional': 'mission', 'tablero-estrategico': 'strategic' };
 const AXIS_ORDER = ['operational', 'mission', 'strategic'];
 const LEVEL_CELL = { strength: 'bg-success-100 text-success-700', developing: 'bg-warning-100 text-warning-700', to_develop: 'bg-danger-100 text-danger-700' };
-const score = (value) => (value == null ? '—' : Math.floor(Number(value)));
+const score = (value) => (value == null ? '—' : formatScore(value));
 
 /** Query string de los filtros del tablero (área, cargo y periodo). */
 export function dashboardQuery(ctx) {
@@ -19,7 +19,7 @@ export function renderAxisDashboard(ctx) {
     if (!axis) return empty('No pudimos preparar este tablero');
 
     const content = axis.evaluated
-        ? summary(axis) + explanation(axis) + `<div class="grid gap-5 lg:grid-cols-2">${panel('Habilidades', bars(axis.skills.map((s) => ({ name: `${s.name}${s.weight > 1 ? ' · peso alto' : ''}`, value: s.average }))))}${panel('Categorías', bars(axis.categories.map((c) => ({ name: ctx.category(c.id)?.name ?? 'Categoría', value: c.average }))))}</div>` + people(ctx, axis)
+        ? summary(axis) + explanation(axis) + `<div class="grid gap-5 lg:grid-cols-2">${panel('Habilidades', bars(axis.skills.map((s) => ({ name: `${s.name}${s.weight > 1 ? ' · peso alto' : ''}`, value: s.average })), false, formatScore))}${panel('Categorías', bars(axis.categories.map((c) => ({ name: ctx.category(c.id)?.name ?? 'Categoría', value: c.average })), false, formatScore))}</div>` + people(ctx, axis)
         : empty('Aún no hay pruebas completadas en este eje', 'Ajusta los filtros o espera a que las personas de este eje terminen su prueba.');
 
     return filters(ctx, axis) + header(axis) + content + (code === 'strategic' ? heatmap(ctx, data) + vertical(data) : '');
@@ -43,7 +43,7 @@ function summary(axis) {
     const d = axis.distribution;
     return kpis([
         ['Personas evaluadas', axis.evaluated, 'users', 'slate'],
-        ['Promedio del eje', `${score(axis.average)} / 100`, 'chart', 'brand', label(axis.level)],
+        ['Promedio del eje', score(axis.average), 'chart', 'brand', label(axis.level)],
         ['Fortaleza', d.strength, 'sparkles', 'green', '75 o más'],
         ['Por debajo de 75', d.developing + d.to_develop, 'trend', 'amber', `${d.developing} en desarrollo · ${d.to_develop} por desarrollar`],
     ]);
@@ -58,7 +58,7 @@ function explanation(axis) {
 }
 
 function people(ctx, axis) {
-    const rows = axis.people.map((p) => [e(p.name ?? 'Sin nombre'), e(p.position ?? 'Sin cargo'), e(p.area ?? 'Sin área'), progress(p.total, color(p.total)), statusBadge(p.level), date(p.completed_at), button('Ver resultado', 'employee-evaluation', p.evaluation_id)]);
+    const rows = axis.people.map((p) => [e(p.name ?? 'Sin nombre'), e(p.position ?? 'Sin cargo'), e(p.area ?? 'Sin área'), scoreProgress(p.total, levelColor(p.level), true), statusBadge(p.level), date(p.completed_at), button('Ver resultado', 'employee-evaluation', p.evaluation_id)]);
     return panel('Resultados individuales', table(['Persona', 'Cargo', 'Área', 'Resultado', 'Nivel', 'Fecha', ''], ctx.sorted(rows), ctx.state, 'Resultados individuales del eje'));
 }
 
@@ -71,7 +71,7 @@ function heatmap(ctx, data) {
         if (c.average == null) return '<td><span class="block rounded-control bg-slate-50 px-2 py-3 text-center text-xs text-slate-600">Sin datos</span></td>';
         return `<td><span class="block rounded-control px-2 py-2 text-center ${LEVEL_CELL[c.level] ?? ''}"><strong class="block text-lg tabular-nums">${score(c.average)}</strong><span class="text-xs">${e(label(c.level))} · ${c.count} ${c.count === 1 ? 'persona' : 'personas'}</span></span></td>`;
     };
-    return panel('Mapa de calor: categorías × ejes', `<p class="mb-4 text-sm leading-6 text-slate-700">Cada celda es el promedio (0–100) de los resultados de esa categoría en ese eje. Permite ver si una brecha es general o propia de un eje.</p><div class="overflow-x-auto"><table class="ws-table min-w-[560px]"><caption class="sr-only">Promedio por categoría y eje</caption><thead><tr><th scope="col">Categoría</th>${axes.map((a) => `<th scope="col">${e(a.name)}</th>`).join('')}</tr></thead><tbody>${categories.map((c) => `<tr><th scope="row" class="whitespace-normal bg-white text-sm normal-case tracking-normal text-slate-800">${e(c.name)}</th>${axes.map((a) => cell(c, a)).join('')}</tr>`).join('')}</tbody></table></div><div class="mt-4 flex flex-wrap gap-2">${badge('75 o más · Fortaleza', 'green')}${badge('50–74 · En desarrollo', 'amber')}${badge('Menos de 50 · Por desarrollar', 'red')}</div>`);
+    return panel('Mapa de calor: categorías × ejes', `<p class="mb-4 text-sm leading-6 text-slate-700">Cada celda es el promedio (0–100) de los resultados de esa categoría en ese eje. Permite ver si una brecha es general o propia de un eje.</p><div class="overflow-x-auto"><table class="ws-table min-w-[560px]"><caption class="sr-only">Promedio por categoría y eje</caption><thead><tr><th scope="col">Categoría</th>${axes.map((a) => `<th scope="col">${e(a.name)}</th>`).join('')}</tr></thead><tbody>${categories.map((c) => `<tr><th scope="row" class="whitespace-normal bg-white text-sm normal-case tracking-normal text-slate-800">${e(c.name)}</th>${axes.map((a) => cell(c, a)).join('')}</tr>`).join('')}</tbody></table></div><div class="mt-4 flex flex-wrap gap-2">${badge('75 o más · Fortaleza', 'green')}${badge('Desde 50 hasta menos de 75 · En desarrollo', 'amber')}${badge('Menos de 50 · Por desarrollar', 'red')}</div>`);
 }
 
 function vertical(data) {

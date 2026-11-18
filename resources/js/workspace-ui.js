@@ -3,11 +3,17 @@ import { escapeHtml as e } from './data/platform';
 export { e };
 export const labels = { pending: 'Pendiente', in_progress: 'En progreso', completed: 'Completado', expired: 'Vencido', cancelled: 'Cancelado', initial: 'Inicial', reevaluation: 'Reevaluación', self_report: 'Autorreporte', situational: 'Situacional', situational_judgment: 'Juicio situacional', basic: 'Básico', intermediate: 'Intermedio', advanced: 'Avanzado', critical: 'Crítico', high: 'Alta', medium: 'Media', low: 'Baja', outstanding: 'Sobresaliente', strong: 'Sólido', developing: 'En desarrollo', to_develop: 'Por desarrollar', strength: 'Fortaleza', collaborator: 'Colaborador', human_resources: 'Talento humano', superadmin: 'Administrador', reading: 'Lectura', video: 'Video', exercise: 'Ejercicio' };
 export const label = (value) => labels[value] ?? value ?? '—';
-// Parte entera, no redondeo: un 74,6 nunca se ve como «75» junto al nivel «En desarrollo» (los límites de nivel son enteros).
 export const percent = (score) => score == null ? null : Math.floor(Number(score));
+const scoreNumber = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const formatScore = (value) => value == null ? 'Sin datos' : `${scoreNumber.format(value)} puntos`;
 export const date = (value, calendar = false) => value ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeZone: 'America/Bogota' }).format(new Date(calendar || value.length === 10 ? `${value.slice(0, 10)}T12:00:00Z` : value)) : 'Sin fecha';
 export const average = (values) => values.length ? values.reduce((a, b) => a + Number(b), 0) / values.length : null;
-export const color = (value) => value == null ? 'var(--color-slate-400)' : value >= 75 ? 'var(--color-success-600)' : value >= 50 ? 'var(--color-warning-600)' : 'var(--color-danger-600)';
+export const levelColor = (level) => ({
+    strength: 'var(--color-success-600)',
+    developing: 'var(--color-warning-600)',
+    to_develop: 'var(--color-danger-600)',
+})[level] ?? 'var(--color-slate-400)';
+export const color = (value) => levelColor(value == null ? null : value >= 75 ? 'strength' : value >= 50 ? 'developing' : 'to_develop');
 export const initials = (name) => String(name ?? '').split(' ').filter(Boolean).map((s) => s[0]).slice(0, 2).join('');
 export const identity = (user) => `<div class="flex min-w-0 items-center gap-3"><span class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">${e(initials(user?.name))}</span><span class="min-w-0"><strong class="block break-words text-sm">${e(user?.name ?? 'Sin colaborador')}</strong>${user?.email ? `<span class="block break-all text-xs text-slate-500">${e(user.email)}</span>` : ''}</span></div>`;
 export const badge = (text, tone = 'slate') => `<span class="ws-badge ws-badge--${tone}">${e(label(text))}</span>`;
@@ -17,7 +23,8 @@ export const button = (text, action, id = '', primary = false) => `<button type=
 export const link = (text, screen, id = '', primary = false) => `<button type="button" class="${primary ? 'ws-primary' : 'ws-button'}" data-navigate="${e(screen)}" data-id="${e(id)}">${e(text)}</button>`;
 export const empty = (title = 'No hay registros para mostrar', description = 'Los registros aparecerán aquí cuando estén disponibles.') => `<div class="rounded-xl border border-dashed border-slate-200 bg-white px-5 py-12 text-center"><h2 class="text-base font-bold">${e(title)}</h2><p class="mt-2 text-sm text-slate-500">${e(description)}</p></div>`;
 export const panel = (title, content, action = '') => `<article class="ws-panel"><div class="mb-4 flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">${e(title)}</h2>${action}</div>${content}</article>`;
-export const progress = (value, tone = 'var(--color-brand-600)', showValue = true, accessibleLabel) => `<div class="flex min-w-24 items-center gap-2"><progress class="ws-progress" style="--progress-color:${tone}" value="${Math.min(100, Math.max(0, Number(value) || 0))}" max="100" aria-label="${e(accessibleLabel ?? (showValue ? 'Progreso' : `${value == null ? 'Sin datos' : Math.floor(Number(value))} de 100`))}"></progress>${showValue ? `<strong class="whitespace-nowrap text-xs tabular-nums">${value == null ? '—' : `${Math.floor(Number(value))}%`}</strong>` : ''}</div>`;
+export const progress = (value, tone = 'var(--color-brand-600)', showValue = true, accessibleLabel, scoreLabel) => `<div class="flex min-w-24 items-center gap-2"><progress class="ws-progress" style="--progress-color:${tone}" value="${Math.min(100, Math.max(0, Number(value) || 0))}" max="100" aria-label="${e(accessibleLabel ?? scoreLabel ?? (showValue ? 'Progreso' : `${value == null ? 'Sin datos' : Math.floor(Number(value))} de 100`))}"${scoreLabel == null ? '' : ` aria-valuetext="${e(scoreLabel)}"`}></progress>${showValue ? `<strong class="whitespace-nowrap text-xs tabular-nums">${value == null ? '—' : e(scoreLabel ?? `${Math.floor(Number(value))}%`)}</strong>` : ''}</div>`;
+export const scoreProgress = (value, tone, showValue = false) => progress(value, tone, showValue, undefined, formatScore(value));
 export const kpis = (items) => `<div class="grid grid-cols-2 gap-4 ${items.length > 4 ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-4'}">${items.map(([title, value, icon = 'chart', tone = 'blue', hint = '']) => `<article class="ws-panel"><div class="mb-3 flex items-start justify-between gap-2"><h2 class="text-xs font-medium text-slate-500">${e(title)}</h2><span class="ws-badge ws-badge--${tone} rounded-lg p-2">${svg(icon)}</span></div><p class="text-2xl font-bold tabular-nums">${e(value ?? '—')}</p>${hint ? `<p class="mt-1 text-xs text-slate-500">${e(hint)}</p>` : ''}</article>`).join('')}</div>`;
 
 const paths = {
@@ -48,16 +55,18 @@ const paths = {
 export const svg = (name) => `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] ?? paths.chart}</svg>`;
 export function icons() { document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = svg(el.dataset.icon); }); }
 
-export function bars(items, vertical = false) {
+export function bars(items, vertical = false, formatValue) {
     if (!items.length || items.every((i) => i.value == null)) return empty('Todavía no hay resultados');
-    if (!vertical) return `<div class="space-y-4">${items.map((item) => `<div><div class="mb-2 flex justify-between gap-3 text-xs"><span>${e(item.name)}</span><strong class="tabular-nums">${item.value == null ? 'Sin datos' : Math.floor(item.value)}</strong></div>${progress(item.value, item.color ?? color(item.value), false)}</div>`).join('')}</div>`;
-    return `<div class="ws-chart" role="img" aria-label="Resultados por eje de 0 a 100 por ciento"><div class="ws-chart-scale"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div class="ws-chart-bars">${items.map((item) => `<div class="ws-chart-column"><strong>${item.value == null ? '—' : `${Math.floor(item.value)}%`}</strong><div style="height:${Math.max(0, Math.min(100, item.value ?? 0))}%;background:${item.color ?? 'var(--color-brand-500)'}" title="${e(item.name)}: ${item.value == null ? 'Sin datos' : `${Math.floor(item.value)}%`}"></div><span>${e(item.name)}</span></div>`).join('')}</div></div>`;
+    if (!vertical) return `<div class="space-y-4">${items.map((item) => `<div><div class="mb-2 flex justify-between gap-3 text-xs"><span>${e(item.name)}</span><strong class="tabular-nums">${e(formatValue ? formatValue(item.value) : item.value == null ? 'Sin datos' : Math.floor(item.value))}</strong></div>${progress(item.value, item.color ?? color(item.value), false, undefined, formatValue?.(item.value))}</div>`).join('')}</div>`;
+    const labelValue = formatValue ?? ((value) => `${Math.floor(value)}%`);
+    return `<div class="ws-chart" role="img" aria-label="Resultados por eje de 0 a 100 ${formatValue ? 'puntos' : 'por ciento'}"><div class="ws-chart-scale"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div class="ws-chart-bars">${items.map((item) => `<div class="ws-chart-column"><strong>${item.value == null ? '—' : e(labelValue(item.value))}</strong><div style="height:${Math.max(0, Math.min(100, item.value ?? 0))}%;background:${item.color ?? 'var(--color-brand-500)'}" title="${e(item.name)}: ${item.value == null ? 'Sin datos' : e(labelValue(item.value))}"></div><span>${e(item.name)}</span></div>`).join('')}</div></div>`;
 }
 
 export function lineChart(series, formatValue = (value) => `${Math.floor(value)}%`) {
     if (!series.length) return empty('No hay historial disponible');
+    const description = series.map((point) => `${point.name}: ${formatValue(point.value)}`).join('. ');
     const points = series.map((point, i) => `${30 + i * (480 / Math.max(1, series.length - 1))},${210 - point.value * 1.8}`).join(' ');
-    return `<svg viewBox="0 0 540 250" class="w-full" role="img" aria-label="Evolución de resultados"><path d="M30 30H510M30 75H510M30 120H510M30 165H510M30 210H510" stroke="var(--color-slate-100)"/><polyline points="${points}" fill="none" stroke="var(--color-brand-500)" stroke-width="3"/>${series.map((p, i) => `<g><circle cx="${30 + i * (480 / Math.max(1, series.length - 1))}" cy="${210 - p.value * 1.8}" r="4" fill="var(--color-brand-500)"><title>${e(p.name)}: ${e(formatValue(p.value))}</title></circle><text x="${30 + i * (480 / Math.max(1, series.length - 1))}" y="235" text-anchor="middle" fill="var(--color-slate-600)" font-size="10">${e(p.name)}</text></g>`).join('')}</svg>`;
+    return `<svg viewBox="0 0 540 250" class="w-full" role="img" aria-label="Evolución de resultados. ${e(description)}"><path d="M30 30H510M30 75H510M30 120H510M30 165H510M30 210H510" stroke="var(--color-slate-100)"/><polyline points="${points}" fill="none" stroke="var(--color-brand-500)" stroke-width="3"/>${series.map((p, i) => `<g><circle cx="${30 + i * (480 / Math.max(1, series.length - 1))}" cy="${210 - p.value * 1.8}" r="4" fill="var(--color-brand-500)"><title>${e(p.name)}: ${e(formatValue(p.value))}</title></circle><text x="${30 + i * (480 / Math.max(1, series.length - 1))}" y="235" text-anchor="middle" fill="var(--color-slate-600)" font-size="10">${e(p.name)}</text></g>`).join('')}</svg>`;
 }
 
 export function table(columns, rows, state = {}, caption = 'Registros') {
@@ -82,7 +91,7 @@ export const formErrors = (error) => `<p class="text-sm font-medium text-red-700
  */
 export function radar(items, label = 'Resultado por habilidad') {
     const points = items.filter((item) => item.value != null);
-    if (points.length < 3) return bars(items);
+    if (points.length < 3) return bars(items, false, formatScore);
     const size = 300; const center = size / 2; const radius = 105;
     const at = (index, value) => {
         const angle = (Math.PI * 2 * index) / points.length - Math.PI / 2;
@@ -90,13 +99,13 @@ export function radar(items, label = 'Resultado por habilidad') {
     };
     const ring = (value) => points.map((_, i) => at(i, value).join(',')).join(' ');
     const shape = points.map((p, i) => at(i, p.value).join(',')).join(' ');
-    const description = points.map((p) => `${p.name}: ${Math.floor(p.value)}`).join('; ');
+    const description = points.map((p) => `${p.name}: ${formatScore(p.value)}`).join('; ');
     return `<div class="grid gap-4"><svg viewBox="0 0 ${size} ${size}" class="mx-auto w-full max-w-[260px]" role="img" aria-label="${e(label)}. ${e(description)}">`
         + [25, 50, 75, 100].map((v) => `<polygon points="${ring(v)}" fill="none" stroke="var(--color-slate-200)"/>`).join('')
         + points.map((_, i) => `<line x1="${center}" y1="${center}" x2="${at(i, 100)[0]}" y2="${at(i, 100)[1]}" stroke="var(--color-slate-200)"/>`).join('')
         + `<polygon points="${shape}" fill="var(--color-brand-500)" fill-opacity="0.18" stroke="var(--color-brand-600)" stroke-width="2"/>`
         + points.map((p, i) => { const [x, y] = at(i, p.value); const [lx, ly] = at(i, 118); return `<circle cx="${x}" cy="${y}" r="4" fill="var(--color-brand-600)"/><text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="600" fill="var(--color-slate-700)">${i + 1}</text>`; }).join('')
-        + `</svg><ol class="space-y-2 text-sm" aria-hidden="true">${points.map((p, i) => `<li class="flex items-start gap-2"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold">${i + 1}</span><span class="min-w-0 flex-1">${e(p.name)}</span><strong class="tabular-nums">${Math.floor(p.value)}</strong></li>`).join('')}</ol></div>`;
+        + `</svg><ol class="space-y-2 text-sm" aria-hidden="true">${points.map((p, i) => `<li class="flex items-start gap-2"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold">${i + 1}</span><span class="min-w-0 flex-1">${e(p.name)}</span><strong class="tabular-nums">${formatScore(p.value)}</strong></li>`).join('')}</ol></div>`;
 }
 
 /** Badge de nivel con su nombre (no solo color). */
